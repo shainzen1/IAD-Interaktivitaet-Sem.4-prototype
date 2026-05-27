@@ -831,25 +831,21 @@
     color: rgba(255,255,255,0.3);
     line-height: 1;
   }
-  .lsp-tipp-edit-link {
-    background: transparent;
-    border: none;
-    color: rgba(255,255,255,0.55);
-    font-family: var(--srf-font);
-    font-size: 11px;
+  .lsp-tipp-locked-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: center;
+    color: rgba(255,255,255,0.45);
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.8px;
     text-transform: uppercase;
-    cursor: pointer;
-    padding: 6px 0 0;
-    text-align: center;
-    transition: color 0.15s;
+    padding: 4px 8px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 999px;
   }
-  .lsp-tipp-edit-link:hover { color: var(--white); }
-  .lsp-tipp-edit-link::after {
-    content: ' →';
-    opacity: 0.5;
-  }
+  .lsp-tipp-locked-note svg { opacity: 0.8; }
 
   .companion-btn-wrap {
     position: relative;
@@ -1540,7 +1536,6 @@
     background: #000;
     justify-content: center;
     align-items: center;
-    position: relative;
     overflow: hidden;
   }
 
@@ -2220,6 +2215,26 @@
     color: rgba(255,255,255,0.55);
     flex-shrink: 0;
   }
+  .s3-tipp-locked {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    background: rgba(255,255,255,0.05);
+    padding: 4px 8px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+  .s3-tipp-locked svg { opacity: 0.8; }
+  .s3-tipp-pill.is-locked {
+    cursor: default;
+    pointer-events: none;
+  }
+  .s3-tipp-pill.is-locked:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
 
   /* Secondary state for landscape bottom-sheet tipp button after tipp placed */
   .tipp-confirm-btn-secondary {
@@ -2643,7 +2658,7 @@
                 </div>
                 <button class="tipp-confirm-btn" id="lsp-go-tipp">Tipp abgeben →</button>
               </div>
-              <!-- Placed state -->
+              <!-- Placed state (read-only after lock-in) -->
               <div class="lsp-tipp-placed">
                 <div class="lsp-tipp-placed-head">
                   <span class="lsp-tipp-placed-label">Dein Tipp</span>
@@ -2656,7 +2671,10 @@
                   <span class="lsp-tipp-num" id="lsp-tipp-away">1</span>
                   <span class="lsp-tipp-team">FRA</span>
                 </div>
-                <button class="lsp-tipp-edit-link" id="lsp-tipp-edit">Tipp ändern</button>
+                <div class="lsp-tipp-locked-note">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                  <span>Tipp gesperrt</span>
+                </div>
               </div>
             </div>
           </div>
@@ -3547,23 +3565,19 @@
         if (ptsEl) ptsEl.textContent = '+' + placedPoints + ' Pkt möglich';
       }
     }
-    // Cast portrait sheet
+    // Cast portrait pill — read-only once placed (no edit affordance)
     const castTipp = document.getElementById('s3-tipp-pill');
     if (castTipp) {
-      castTipp.innerHTML = tippPlaced
-        ? '<span class="s3-tipp-label">Dein Tipp</span><span class="s3-tipp-val">' + placedScore + '</span><span class="s3-tipp-edit">Ändern</span>'
-        : '<span class="s3-tipp-label">Mein Tipp</span><span class="s3-tipp-val s3-tipp-val-empty">Noch offen</span><span class="s3-tipp-cta">Tipp abgeben →</span>';
+      if (tippPlaced) {
+        castTipp.innerHTML = '<span class="s3-tipp-label">Dein Tipp</span><span class="s3-tipp-val">' + placedScore + '</span><span class="s3-tipp-locked"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Gesperrt</span>';
+        castTipp.classList.add('is-locked');
+        castTipp.setAttribute('disabled', '');
+      } else {
+        castTipp.innerHTML = '<span class="s3-tipp-label">Mein Tipp</span><span class="s3-tipp-val s3-tipp-val-empty">Noch offen</span><span class="s3-tipp-cta">Tipp abgeben →</span>';
+        castTipp.classList.remove('is-locked');
+        castTipp.removeAttribute('disabled');
+      }
     }
-  }
-
-  // Edit link on placed-state tipp card → opens s-edit
-  const lspTippEdit = document.getElementById('lsp-tipp-edit');
-  if (lspTippEdit) {
-    lspTippEdit.addEventListener('click', () => {
-      clearTimeout(eruptionAutoTimer);
-      closeLandscapePanel();
-      setTimeout(() => showScreen('s-edit'), 200);
-    });
   }
 
   // Hook lock-confirm to mark tipp as placed
