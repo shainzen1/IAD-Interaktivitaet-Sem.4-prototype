@@ -724,36 +724,131 @@
   .lsp-reactions .reaction-label { font-size: 10px; margin-top: 4px; }
   .lsp-reactions .reaction-count { display: none; }
 
-  /* Compact tipp card inside landscape bottom sheet */
+  /* Tipp card inside landscape bottom sheet — dual state (empty / placed) */
   .lsp-tipp-card {
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 10px;
-    padding: 12px 14px;
+    border-radius: 12px;
+    padding: 14px 14px 12px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    flex: 1;
+    min-height: 0;
   }
-  .lsp-tipp-status {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.4px;
-    color: rgba(255,255,255,0.65);
+  .lsp-tipp-card .lsp-tipp-placed { display: none; }
+  .lsp-tipp-card.is-placed .lsp-tipp-empty { display: none; }
+  .lsp-tipp-card.is-placed .lsp-tipp-placed { display: flex; }
+
+  /* Empty state */
+  .lsp-tipp-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    height: 100%;
   }
-  .lsp-tipp-status strong {
+  .lsp-tipp-empty-icon {
+    font-size: 22px;
+    opacity: 0.65;
+    line-height: 1;
+  }
+  .lsp-tipp-empty-copy { flex: 1; }
+  .lsp-tipp-empty-head {
+    font-size: 13px;
+    font-weight: 800;
     color: var(--white);
-    font-size: 18px;
-    font-weight: 900;
-    letter-spacing: -0.5px;
+    letter-spacing: 0.2px;
+    margin-bottom: 3px;
   }
-  .lsp-tipp-meta {
-    font-size: 10px;
-    color: rgba(255,255,255,0.4);
+  .lsp-tipp-empty-sub {
+    font-size: 10.5px;
+    color: rgba(255,255,255,0.5);
     letter-spacing: 0.3px;
+    line-height: 1.45;
   }
-  .lsp-tipp-card .tipp-confirm-btn {
+  .lsp-tipp-empty .tipp-confirm-btn {
+    width: 100%;
     padding: 11px 14px;
     font-size: 11px;
+  }
+
+  /* Placed state */
+  .lsp-tipp-placed {
+    flex-direction: column;
+    height: 100%;
+    gap: 0;
+  }
+  .lsp-tipp-placed-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .lsp-tipp-placed-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+  }
+  .lsp-tipp-placed-pts {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: var(--red);
+    letter-spacing: 0.3px;
+    background: rgba(227,31,43,0.12);
+    border: 1px solid rgba(227,31,43,0.3);
+    padding: 3px 7px;
+    border-radius: 999px;
+    line-height: 1;
+  }
+  .lsp-tipp-placed-score {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto 1fr;
+    align-items: center;
+    justify-items: center;
+    gap: 4px 8px;
+    padding: 10px 0 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 10px;
+  }
+  .lsp-tipp-team {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.8px;
+  }
+  .lsp-tipp-num {
+    font-size: 30px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -1.5px;
+    line-height: 1;
+  }
+  .lsp-tipp-sep {
+    font-size: 22px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.3);
+    line-height: 1;
+  }
+  .lsp-tipp-edit-link {
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.55);
+    font-family: var(--srf-font);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 6px 0 0;
+    text-align: center;
+    transition: color 0.15s;
+  }
+  .lsp-tipp-edit-link:hover { color: var(--white); }
+  .lsp-tipp-edit-link::after {
+    content: ' →';
+    opacity: 0.5;
   }
 
   .companion-btn-wrap {
@@ -1016,6 +1111,42 @@
     50% { opacity: 0.7; }
   }
   .energie-hint { font-size: 11px; color: rgba(255,255,255,0.25); }
+
+  /* ─── FLOATING REACTION EMOJIS (companion-only) ─── */
+  .float-emoji-layer {
+    position: absolute;
+    left: 0;
+    bottom: 78%;
+    width: 230px;
+    height: 96px;
+    overflow: visible;
+    pointer-events: none;
+    z-index: 6;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .lstream.companion-open .float-emoji-layer { opacity: 1; }
+  .float-emoji {
+    position: absolute;
+    bottom: 0;
+    font-size: 22px;
+    opacity: 0;
+    line-height: 1;
+    pointer-events: none;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.65));
+    animation: float-emoji-rise 3.2s ease-out forwards;
+    will-change: transform, opacity;
+  }
+  .float-emoji-me {
+    font-size: 26px;
+    text-shadow: 0 0 18px rgba(227,31,43,0.6);
+  }
+  @keyframes float-emoji-rise {
+    0%   { opacity: 0; transform: translate(0, 8px) scale(0.6); }
+    14%  { opacity: 1; transform: translate(0, 0) scale(1); }
+    65%  { opacity: 1; }
+    100% { opacity: 0; transform: translate(var(--drift, 12px), -110px) scale(0.9); }
+  }
 
   /* ─── CHAT OVERLAY (Twitch-style) ─── */
   .lstream-chat-panel {
@@ -2503,9 +2634,30 @@
           <div class="lsp-section">
             <div class="section-head">Mein Tipp</div>
             <div class="lsp-tipp-card" id="lsp-tipp-card">
-              <div class="lsp-tipp-status" id="lsp-tipp-status-text">Noch nicht abgegeben</div>
-              <div class="lsp-tipp-meta">Endstand SUI — FRA tippen</div>
-              <button class="tipp-confirm-btn" id="lsp-go-tipp">Tipp abgeben →</button>
+              <!-- Empty state -->
+              <div class="lsp-tipp-empty">
+                <div class="lsp-tipp-empty-icon">⚽️</div>
+                <div class="lsp-tipp-empty-copy">
+                  <div class="lsp-tipp-empty-head">Noch kein Tipp</div>
+                  <div class="lsp-tipp-empty-sub">Tippe den Endstand · bis zu +250 Pkt</div>
+                </div>
+                <button class="tipp-confirm-btn" id="lsp-go-tipp">Tipp abgeben →</button>
+              </div>
+              <!-- Placed state -->
+              <div class="lsp-tipp-placed">
+                <div class="lsp-tipp-placed-head">
+                  <span class="lsp-tipp-placed-label">Dein Tipp</span>
+                  <span class="lsp-tipp-placed-pts" id="lsp-tipp-pts">+150 Pkt möglich</span>
+                </div>
+                <div class="lsp-tipp-placed-score">
+                  <span class="lsp-tipp-team">SUI</span>
+                  <span class="lsp-tipp-num" id="lsp-tipp-home">2</span>
+                  <span class="lsp-tipp-sep">:</span>
+                  <span class="lsp-tipp-num" id="lsp-tipp-away">1</span>
+                  <span class="lsp-tipp-team">FRA</span>
+                </div>
+                <button class="lsp-tipp-edit-link" id="lsp-tipp-edit">Tipp ändern</button>
+              </div>
             </div>
           </div>
 
@@ -2525,6 +2677,9 @@
           </div>
         </div>
       </aside>
+
+      <!-- Floating reaction emojis (companion-only) -->
+      <div class="float-emoji-layer" id="lstream-float-layer" aria-hidden="true"></div>
 
       <!-- Chat side panel (Twitch-style) -->
       <aside class="lstream-chat-panel" id="lstream-chat-panel" aria-hidden="true">
@@ -3378,18 +3533,18 @@
   }
 
   function refreshTippDisplays() {
-    // Landscape bottom sheet
-    const lspStatus = document.getElementById('lsp-tipp-status-text');
-    const lspBtn = document.getElementById('lsp-go-tipp');
-    if (lspStatus && lspBtn) {
+    // Landscape bottom sheet — toggle placed/empty layout
+    const card = document.getElementById('lsp-tipp-card');
+    if (card) {
+      card.classList.toggle('is-placed', tippPlaced);
       if (tippPlaced) {
-        lspStatus.innerHTML = 'Dein Tipp <strong>' + placedScore + '</strong>';
-        lspBtn.textContent = 'Tipp ändern';
-        lspBtn.classList.add('tipp-confirm-btn-secondary');
-      } else {
-        lspStatus.textContent = 'Noch nicht abgegeben';
-        lspBtn.textContent = 'Tipp abgeben →';
-        lspBtn.classList.remove('tipp-confirm-btn-secondary');
+        const [h, a] = placedScore.split(' : ');
+        const hEl = document.getElementById('lsp-tipp-home');
+        const aEl = document.getElementById('lsp-tipp-away');
+        const ptsEl = document.getElementById('lsp-tipp-pts');
+        if (hEl) hEl.textContent = h;
+        if (aEl) aEl.textContent = a;
+        if (ptsEl) ptsEl.textContent = '+' + placedPoints + ' Pkt möglich';
       }
     }
     // Cast portrait sheet
@@ -3399,6 +3554,16 @@
         ? '<span class="s3-tipp-label">Dein Tipp</span><span class="s3-tipp-val">' + placedScore + '</span><span class="s3-tipp-edit">Ändern</span>'
         : '<span class="s3-tipp-label">Mein Tipp</span><span class="s3-tipp-val s3-tipp-val-empty">Noch offen</span><span class="s3-tipp-cta">Tipp abgeben →</span>';
     }
+  }
+
+  // Edit link on placed-state tipp card → opens s-edit
+  const lspTippEdit = document.getElementById('lsp-tipp-edit');
+  if (lspTippEdit) {
+    lspTippEdit.addEventListener('click', () => {
+      clearTimeout(eruptionAutoTimer);
+      closeLandscapePanel();
+      setTimeout(() => showScreen('s-edit'), 200);
+    });
   }
 
   // Hook lock-confirm to mark tipp as placed
@@ -3595,6 +3760,60 @@
       }
     });
   });
+
+  // ─────────────────────────────────────────────
+  // FLOATING REACTION EMOJIS (bottom-left of video, companion-open only)
+  // ─────────────────────────────────────────────
+  const floatLayer = document.getElementById('lstream-float-layer');
+  const reactionEmojiMap = { tor: '🔥', pass: '❤️', foul: '😱' };
+  const ambientPool = ['🔥', '❤️', '😱', '👏', '🇨🇭', '⚽️', '🎉', '🔥', '🇫🇷', '💪'];
+
+  function spawnFloatEmoji(emoji, isMe) {
+    if (!floatLayer) return;
+    if (!lstreamEl.classList.contains('companion-open')) return;
+    const span = document.createElement('span');
+    span.className = 'float-emoji' + (isMe ? ' float-emoji-me' : '');
+    span.textContent = emoji;
+    const w = floatLayer.offsetWidth || 220;
+    const left = 14 + Math.random() * (w - 50);
+    const drift = (Math.random() - 0.5) * 60;
+    span.style.left = left + 'px';
+    span.style.setProperty('--drift', drift + 'px');
+    span.style.animationDuration = (2.6 + Math.random() * 1.2) + 's';
+    floatLayer.appendChild(span);
+    setTimeout(() => span.remove(), 4000);
+  }
+
+  // Hook into ALL reaction-btn clicks (landscape + cast)
+  document.querySelectorAll('.reaction-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const emoji = reactionEmojiMap[btn.dataset.reaction];
+      if (emoji) spawnFloatEmoji(emoji, true);
+    });
+  });
+
+  // Chat emoji pills also pop a float
+  document.querySelectorAll('.chat-reaction-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      spawnFloatEmoji(pill.dataset.emoji, true);
+    });
+  });
+
+  // Ambient simulated reactions from other fans — subtle pace
+  let ambientFloatTimer = null;
+  function tickAmbientFloat() {
+    if (lstreamEl.classList.contains('companion-open')) {
+      // 1-2 emojis per burst, randomized
+      const burst = Math.random() < 0.4 ? 2 : 1;
+      for (let i = 0; i < burst; i++) {
+        setTimeout(() => {
+          spawnFloatEmoji(ambientPool[Math.floor(Math.random() * ambientPool.length)], false);
+        }, i * 160);
+      }
+    }
+    ambientFloatTimer = setTimeout(tickAmbientFloat, 700 + Math.random() * 1400);
+  }
+  tickAmbientFloat();
 
   // Start chat cycling now that handlers exist
   chatCycle();
