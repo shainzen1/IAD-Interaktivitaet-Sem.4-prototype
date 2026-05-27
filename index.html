@@ -615,237 +615,189 @@
     margin-top: 6px;
   }
 
-  /* Landscape companion bottom-sheet (Flow A) — slides up from the bottom */
-  .lstream-side-panel {
-    position: absolute;
-    left: 0; right: 0; bottom: 0;
-    height: 78%;
-    max-height: 305px;
-    background: linear-gradient(180deg, rgba(14,14,14,0.96), rgba(8,8,8,0.98));
-    backdrop-filter: blur(18px);
-    border-top: 1px solid rgba(255,255,255,0.1);
-    border-radius: 16px 16px 0 0;
-    transform: translateY(100%);
-    transition: transform 0.4s cubic-bezier(0.65,0,0.35,1),
-                right 0.4s cubic-bezier(0.65,0,0.35,1);
-    z-index: 7;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 -10px 36px rgba(0,0,0,0.55);
-  }
-  .lstream.companion-open .lstream-side-panel {
-    transform: translateY(0);
-  }
+  /* ─── COMPANION HUD — lightweight edge overlays (replaces the old bottom-sheet) ─── */
   .lstream.companion-open .lstream-controls #go-s3 {
     background: var(--white);
     color: #111;
     border-color: var(--white);
   }
-  .lstream.companion-open .lstream-video::after {
-    content: '';
+
+  /* Reactions column — left edge, slides in glassy */
+  .ls-hud-reactions {
     position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.45);
-    transition: background 0.4s ease;
-    pointer-events: none;
-  }
-  /* Drag handle at top of bottom sheet */
-  .lsp-handle-wrap {
+    left: 10px;
+    top: 50%;
     display: flex;
-    justify-content: center;
-    padding: 8px 0 2px;
-    flex-shrink: 0;
-    cursor: pointer;
-  }
-  .lsp-handle {
-    width: 40px;
-    height: 4px;
-    background: rgba(255,255,255,0.18);
-    border-radius: 2px;
-  }
-
-  .lsp-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 18px 12px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-  }
-  .lsp-title {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--white);
-    letter-spacing: 0.4px;
-  }
-  .lsp-header-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .lsp-close {
-    width: 26px; height: 26px;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 50%;
-    color: var(--white);
-    font-size: 16px;
-    line-height: 1;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    padding: 0;
-  }
-
-  .lsp-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 14px 22px 22px;
-    display: grid;
-    grid-template-columns: 1.1fr 1fr 1.1fr;
-    gap: 22px;
-    align-items: stretch;
-    scrollbar-width: none;
-  }
-  .lsp-body::-webkit-scrollbar { display: none; }
-
-  .lsp-section { display: flex; flex-direction: column; min-width: 0; }
-  .lsp-section .section-head {
-    margin-bottom: 10px;
-  }
-
-  .lsp-reactions {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    flex-direction: column;
     gap: 8px;
+    padding: 8px;
+    background: rgba(15,15,15,0.42);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    transform: translate(calc(-100% - 18px), -50%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.35s cubic-bezier(0.65,0,0.35,1), opacity 0.25s ease;
+    z-index: 6;
   }
-  .lsp-reactions .reaction-btn {
-    padding: 10px 6px;
+  .lstream.companion-open .ls-hud-reactions {
+    transform: translate(0, -50%);
+    opacity: 1;
+    pointer-events: auto;
   }
-  .lsp-reactions .reaction-emoji { font-size: 22px; }
-  .lsp-reactions .reaction-label { font-size: 10px; margin-top: 4px; }
-  .lsp-reactions .reaction-count { display: none; }
+  .ls-hud-reactions .reaction-btn {
+    width: 44px; height: 44px;
+    padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.15s ease;
+  }
+  .ls-hud-reactions .reaction-btn:active {
+    transform: scale(0.92);
+    background: rgba(255,255,255,0.12);
+  }
+  .ls-hud-reactions .reaction-emoji { font-size: 22px; line-height: 1; }
+  .ls-hud-reactions .reaction-label,
+  .ls-hud-reactions .reaction-count { display: none; }
 
-  /* Tipp card inside landscape bottom sheet — dual state (empty / placed) */
-  .lsp-tipp-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 12px;
-    padding: 14px 14px 12px;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-  }
-  .lsp-tipp-card .lsp-tipp-placed { display: none; }
-  .lsp-tipp-card.is-placed .lsp-tipp-empty { display: none; }
-  .lsp-tipp-card.is-placed .lsp-tipp-placed { display: flex; }
-
-  /* Empty state */
-  .lsp-tipp-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    height: 100%;
-  }
-  .lsp-tipp-empty-icon {
-    font-size: 22px;
-    opacity: 0.65;
-    line-height: 1;
-  }
-  .lsp-tipp-empty-copy { flex: 1; }
-  .lsp-tipp-empty-head {
-    font-size: 13px;
-    font-weight: 800;
-    color: var(--white);
-    letter-spacing: 0.2px;
-    margin-bottom: 3px;
-  }
-  .lsp-tipp-empty-sub {
-    font-size: 10.5px;
-    color: rgba(255,255,255,0.5);
-    letter-spacing: 0.3px;
-    line-height: 1.45;
-  }
-  .lsp-tipp-empty .tipp-confirm-btn {
-    width: 100%;
-    padding: 11px 14px;
-    font-size: 11px;
-  }
-
-  /* Placed state */
-  .lsp-tipp-placed {
-    flex-direction: column;
-    height: 100%;
-    gap: 0;
-  }
-  .lsp-tipp-placed-head {
-    display: flex;
+  /* Tipp pill — lives inside .lstream-top-right, only visible when companion-open */
+  .ls-hud-tipp {
+    display: none;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-  }
-  .lsp-tipp-placed-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.8px;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.5);
-  }
-  .lsp-tipp-placed-pts {
-    font-size: 10.5px;
-    font-weight: 800;
-    color: var(--red);
-    letter-spacing: 0.3px;
-    background: rgba(227,31,43,0.12);
-    border: 1px solid rgba(227,31,43,0.3);
-    padding: 3px 7px;
-    border-radius: 999px;
-    line-height: 1;
-  }
-  .lsp-tipp-placed-score {
-    display: grid;
-    grid-template-columns: 1fr auto auto auto 1fr;
-    align-items: center;
-    justify-items: center;
-    gap: 4px 8px;
-    padding: 10px 0 12px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    margin-bottom: 10px;
-  }
-  .lsp-tipp-team {
-    font-size: 10px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.55);
-    letter-spacing: 0.8px;
-  }
-  .lsp-tipp-num {
-    font-size: 30px;
-    font-weight: 900;
+    gap: 8px;
+    height: 28px;
+    padding: 0 10px;
+    background: rgba(15,15,15,0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
     color: var(--white);
-    letter-spacing: -1.5px;
-    line-height: 1;
+    font-family: var(--srf-font);
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.65,0,0.35,1);
   }
-  .lsp-tipp-sep {
-    font-size: 22px;
-    font-weight: 800;
-    color: rgba(255,255,255,0.3);
-    line-height: 1;
-  }
-  .lsp-tipp-locked-note {
+  .lstream.companion-open .ls-hud-tipp {
     display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    align-self: center;
-    color: rgba(255,255,255,0.45);
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.8px;
-    text-transform: uppercase;
-    padding: 4px 8px;
-    background: rgba(255,255,255,0.04);
-    border-radius: 999px;
+    opacity: 1;
+    transform: translateY(0);
   }
-  .lsp-tipp-locked-note svg { opacity: 0.8; }
+  .ls-hud-tipp:active { transform: scale(0.97); }
+  .ls-hud-tipp-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+  }
+  .ls-hud-tipp-val {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    color: var(--white);
+  }
+  .ls-hud-tipp-val.is-empty {
+    color: rgba(255,255,255,0.7);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.6px;
+  }
+  .ls-hud-tipp-bar {
+    width: 56px;
+    height: 4px;
+    background: rgba(255,255,255,0.14);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .ls-hud-tipp-fill {
+    height: 100%;
+    width: 74%;
+    background: linear-gradient(90deg, var(--red), #ff6b3a);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+  .ls-hud-tipp-lock {
+    display: inline-flex; align-items: center;
+    color: rgba(255,255,255,0.5);
+  }
+  .ls-hud-tipp:not(.is-placed) .ls-hud-tipp-lock { display: none; }
+
+  /* Energy meter — right edge, vertical fill + boost button */
+  .ls-hud-energie {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 8px 8px;
+    background: rgba(15,15,15,0.42);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    transform: translate(calc(100% + 18px), -50%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.35s cubic-bezier(0.65,0,0.35,1), opacity 0.25s ease;
+    z-index: 6;
+  }
+  .lstream.companion-open .ls-hud-energie {
+    transform: translate(0, -50%);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .ls-hud-energie-val {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: 0.3px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+  .ls-hud-energie-track {
+    width: 6px;
+    height: 100px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 3px;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+  }
+  .ls-hud-energie-fill {
+    width: 100%;
+    height: 74%;
+    background: linear-gradient(180deg, #ff6b3a, var(--red));
+    border-radius: 3px;
+    animation: energie-pulse 2s ease-in-out infinite;
+  }
+  .ls-boost-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(227,31,43,0.92);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: var(--white);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    box-shadow: 0 4px 14px rgba(227,31,43,0.45);
+    transition: transform 0.12s ease, box-shadow 0.15s ease;
+  }
+  .ls-boost-btn:active {
+    transform: scale(0.9);
+    box-shadow: 0 2px 8px rgba(227,31,43,0.35);
+  }
+  .ls-boost-btn svg { display: block; }
 
   .companion-btn-wrap {
     position: relative;
@@ -1108,13 +1060,13 @@
   }
   .energie-hint { font-size: 11px; color: rgba(255,255,255,0.25); }
 
-  /* ─── FLOATING REACTION EMOJIS (companion-only) ─── */
+  /* ─── FLOATING REACTION EMOJIS (companion-only, bottom-left of screen) ─── */
   .float-emoji-layer {
     position: absolute;
-    left: 0;
-    bottom: 78%;
-    width: 230px;
-    height: 96px;
+    left: 64px;
+    bottom: 64px;
+    width: 220px;
+    height: 160px;
     overflow: visible;
     pointer-events: none;
     z-index: 6;
@@ -1173,9 +1125,6 @@
   .lstream.chat-open .lstream-top {
     right: 320px;
     transition: right 0.4s cubic-bezier(0.65,0,0.35,1);
-  }
-  .lstream.chat-open .lstream-side-panel {
-    right: 320px;
   }
 
   .chat-header {
@@ -2566,6 +2515,13 @@
           <span class="ls-live-pill">Live</span>
         </div>
         <div class="lstream-top-right">
+          <button class="ls-hud-tipp" id="ls-hud-tipp" type="button" aria-label="Mein Tipp">
+            <span class="ls-hud-tipp-val is-empty" id="ls-hud-tipp-val">Tipp abgeben</span>
+            <div class="ls-hud-tipp-bar"><div class="ls-hud-tipp-fill" id="ls-hud-tipp-fill" style="width:74%"></div></div>
+            <span class="ls-hud-tipp-lock" aria-hidden="true">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            </span>
+          </button>
           <button class="ls-cast" id="ls-cast" aria-label="Auf TV streamen">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20a2 2 0 0 1 2-2"/><path d="M2 16a6 6 0 0 1 6 6"/><path d="M2 12a10 10 0 0 1 10 10"/><rect x="2" y="6" width="20" height="12" rx="2"/></svg>
             <span>Auf TV</span>
@@ -2613,87 +2569,28 @@
         </div>
       </div>
 
-      <!-- Landscape bottom-sheet (Flow A: phone-only watching) -->
-      <aside class="lstream-side-panel" id="lstream-side-panel" aria-hidden="true">
-        <div class="lsp-handle-wrap" id="lsp-handle"><div class="lsp-handle"></div></div>
-        <div class="lsp-header">
-          <div class="lsp-title">Live Begleiter</div>
-          <div class="lsp-header-right">
-            <span class="panel-live-badge">LIVE</span>
-            <button class="lsp-close" id="lsp-close" aria-label="Schliessen">×</button>
-          </div>
+      <!-- Companion HUD — edge overlays (visible only when companion-open) -->
+      <div class="ls-hud-reactions" id="ls-hud-reactions" aria-label="Schnell-Reaktionen">
+        <button class="reaction-btn" data-reaction="tor" data-count="0" aria-label="Tor">
+          <span class="reaction-emoji">🔥</span>
+        </button>
+        <button class="reaction-btn" data-reaction="pass" data-count="0" aria-label="Pass">
+          <span class="reaction-emoji">❤️</span>
+        </button>
+        <button class="reaction-btn" data-reaction="foul" data-count="0" aria-label="Foul">
+          <span class="reaction-emoji">😱</span>
+        </button>
+      </div>
+
+      <div class="ls-hud-energie" id="ls-hud-energie" aria-label="Fan-Energie">
+        <span class="ls-hud-energie-val energie-val">74%</span>
+        <div class="ls-hud-energie-track">
+          <div class="ls-hud-energie-fill" id="ls-hud-energie-fill" style="height:74%"></div>
         </div>
-
-        <div class="lsp-body">
-          <!-- Reactions -->
-          <div class="lsp-section">
-            <div class="section-head">Schnell-Reaktionen</div>
-            <div class="lsp-reactions">
-              <button class="reaction-btn lsp-reaction" data-reaction="tor" data-count="0">
-                <span class="reaction-emoji">🔥</span>
-                <span class="reaction-label">Tor!</span>
-              </button>
-              <button class="reaction-btn lsp-reaction" data-reaction="pass" data-count="0">
-                <span class="reaction-emoji">❤️</span>
-                <span class="reaction-label">Pass!</span>
-              </button>
-              <button class="reaction-btn lsp-reaction" data-reaction="foul" data-count="0">
-                <span class="reaction-emoji">😱</span>
-                <span class="reaction-label">Foul!</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Tipp -->
-          <div class="lsp-section">
-            <div class="section-head">Mein Tipp</div>
-            <div class="lsp-tipp-card" id="lsp-tipp-card">
-              <!-- Empty state -->
-              <div class="lsp-tipp-empty">
-                <div class="lsp-tipp-empty-icon">⚽️</div>
-                <div class="lsp-tipp-empty-copy">
-                  <div class="lsp-tipp-empty-head">Noch kein Tipp</div>
-                  <div class="lsp-tipp-empty-sub">Tippe den Endstand · bis zu +250 Pkt</div>
-                </div>
-                <button class="tipp-confirm-btn" id="lsp-go-tipp">Tipp abgeben →</button>
-              </div>
-              <!-- Placed state (read-only after lock-in) -->
-              <div class="lsp-tipp-placed">
-                <div class="lsp-tipp-placed-head">
-                  <span class="lsp-tipp-placed-label">Dein Tipp</span>
-                  <span class="lsp-tipp-placed-pts" id="lsp-tipp-pts">+150 Pkt möglich</span>
-                </div>
-                <div class="lsp-tipp-placed-score">
-                  <span class="lsp-tipp-team">SUI</span>
-                  <span class="lsp-tipp-num" id="lsp-tipp-home">2</span>
-                  <span class="lsp-tipp-sep">:</span>
-                  <span class="lsp-tipp-num" id="lsp-tipp-away">1</span>
-                  <span class="lsp-tipp-team">FRA</span>
-                </div>
-                <div class="lsp-tipp-locked-note">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-                  <span>Tipp gesperrt</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Energie -->
-          <div class="lsp-section">
-            <div class="section-head">Kollektive Stimmung</div>
-            <div class="energie-block" role="button" tabindex="0" aria-label="Tippe für Fan-Eruption">
-              <div class="energie-row">
-                <span class="energie-label">Fan-Energie</span>
-                <span class="energie-val">74%</span>
-              </div>
-              <div class="energie-track">
-                <div class="energie-fill" style="width:74%"></div>
-              </div>
-              <div class="energie-hint">56.000 Fans schauen zu</div>
-            </div>
-          </div>
-        </div>
-      </aside>
+        <button class="ls-boost-btn energie-block" id="ls-boost-btn" type="button" aria-label="Fan-Energie boosten">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg>
+        </button>
+      </div>
 
       <!-- Floating reaction emojis (companion-only) -->
       <div class="float-emoji-layer" id="lstream-float-layer" aria-hidden="true"></div>
@@ -3077,17 +2974,9 @@
     scheduleEruptionAuto();
   });
 
-  // Landscape side-panel close
-  document.getElementById('lsp-close').addEventListener('click', () => {
-    closeLandscapePanel();
-    clearTimeout(eruptionAutoTimer);
-    clearTimeout(energieTimer);
-    energieTaps = 0;
-    companionMode = null;
-  });
-
-  // Landscape side-panel → Tipp (rotates to portrait s-edit)
-  document.getElementById('lsp-go-tipp').addEventListener('click', () => {
+  // HUD tipp pill → rotate to portrait s-edit if no tipp placed yet
+  document.getElementById('ls-hud-tipp').addEventListener('click', () => {
+    if (tippPlaced) return;
     clearTimeout(eruptionAutoTimer);
     closeLandscapePanel();
     setTimeout(() => showScreen('s-edit'), 200);
@@ -3276,6 +3165,7 @@
     val = Math.round(val);
     document.querySelectorAll('.energie-val').forEach(el => el.textContent = val + '%');
     document.querySelectorAll('.energie-fill').forEach(el => el.style.width = val + '%');
+    document.querySelectorAll('.ls-hud-energie-fill').forEach(el => el.style.height = val + '%');
   }
 
   function setEnergieHint(text) {
@@ -3483,19 +3373,6 @@
     requestAnimationFrame(tick);
   }
 
-  // ─────────────────────────────────────────────
-  // Bottom-sheet handle (tap to close) + match-card-link clicks
-  // ─────────────────────────────────────────────
-  const lspHandle = document.getElementById('lsp-handle');
-  if (lspHandle) {
-    lspHandle.addEventListener('click', () => {
-      closeLandscapePanel();
-      clearTimeout(eruptionAutoTimer);
-      clearTimeout(energieTimer);
-      energieTaps = 0;
-      companionMode = null;
-    });
-  }
 
   // Make all "data-go" cards clickable
   document.querySelectorAll('[data-go]').forEach(el => {
@@ -3550,18 +3427,17 @@
   }
 
   function refreshTippDisplays() {
-    // Landscape bottom sheet — toggle placed/empty layout
-    const card = document.getElementById('lsp-tipp-card');
-    if (card) {
-      card.classList.toggle('is-placed', tippPlaced);
+    // Landscape HUD pill — compact status
+    const hudTipp = document.getElementById('ls-hud-tipp');
+    const hudTippVal = document.getElementById('ls-hud-tipp-val');
+    if (hudTipp && hudTippVal) {
+      hudTipp.classList.toggle('is-placed', tippPlaced);
       if (tippPlaced) {
-        const [h, a] = placedScore.split(' : ');
-        const hEl = document.getElementById('lsp-tipp-home');
-        const aEl = document.getElementById('lsp-tipp-away');
-        const ptsEl = document.getElementById('lsp-tipp-pts');
-        if (hEl) hEl.textContent = h;
-        if (aEl) aEl.textContent = a;
-        if (ptsEl) ptsEl.textContent = '+' + placedPoints + ' Pkt möglich';
+        hudTippVal.classList.remove('is-empty');
+        hudTippVal.textContent = placedScore.replace(/ /g, '');
+      } else {
+        hudTippVal.classList.add('is-empty');
+        hudTippVal.textContent = 'Tipp abgeben';
       }
     }
     // Cast portrait pill — read-only once placed (no edit affordance)
