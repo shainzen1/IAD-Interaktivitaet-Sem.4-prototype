@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SRF Sport — Interaktive Live Experience | Handout</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --red: #e31f2b;
+      --dark: #1A1A1A;
+      --white: #FFFFFF;
+      --light: #F6F6F6;
+      --border: #E2E2E2;
+      --muted: #888;
+      --text: #2C2C2C;
+      --sub: #555;
+    }
+
+    html {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background: #D0D0D0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px 60px;
+      min-height: 100vh;
+    }
+
+    /* Print button — screen only */
+    .print-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--dark);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-family: inherit;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      z-index: 100;
+    }
+    .print-btn:hover { background: var(--red); }
+
+    /* A4 PAGE */
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      background: white;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.18);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: var(--red);
+      color: white;
+      padding: 18px 28px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 26pt;
+      font-weight: 900;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+
+    .header-meta {
+      text-align: right;
+    }
+
+    .header-meta .eyebrow {
+      font-size: 7pt;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 2.5px;
+      opacity: 0.8;
+      margin-bottom: 3px;
+    }
+
+    .header-meta .title {
+      font-size: 14pt;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      line-height: 1.2;
+    }
+
+    /* ── TAGLINE BAR ── */
+    .tagline {
+      background: var(--dark);
+      color: white;
+      padding: 14px 28px;
+      border-bottom: 3px solid var(--red);
+    }
+
+    .tagline p {
+      font-size: 10.5pt;
+      font-weight: 300;
+      line-height: 1.5;
+      letter-spacing: 0.1px;
+    }
+
+    .tagline em {
+      font-style: normal;
+      font-weight: 700;
+    }
+
+    /* ── MAIN GRID ── */
+    .content {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 58% 42%;
+    }
+
+    .col-left {
+      padding: 26px 22px 26px 28px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+    }
+
+    .col-right {
+      padding: 26px 28px 26px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    /* ── SECTION PRIMITIVES ── */
+    .section-tag {
+      font-size: 6pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: var(--red);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-tag::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    p {
+      font-size: 8.5pt;
+      line-height: 1.65;
+      color: var(--sub);
+    }
+
+    p + p { margin-top: 7px; }
+
+    strong { color: var(--text); font-weight: 700; }
+
+    /* ── KONZEPT ── */
+    .konzept-highlight {
+      margin-top: 10px;
+      padding: 10px 14px;
+      background: var(--red);
+      color: white;
+      font-size: 8pt;
+      line-height: 1.5;
+      font-weight: 500;
+    }
+
+    /* ── DECISION LIST ── */
+    .decisions {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+
+    .decisions li {
+      display: flex;
+      gap: 11px;
+      align-items: flex-start;
+    }
+
+    .d-num {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      background: var(--dark);
+      color: white;
+      font-size: 7pt;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+
+    .d-body strong {
+      display: block;
+      font-size: 8.5pt;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .d-body span {
+      font-size: 8pt;
+      color: var(--sub);
+      line-height: 1.55;
+    }
+
+    /* ── RESEARCH ── */
+    .research-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .research-card {
+      padding: 9px 12px 9px 12px;
+      background: var(--light);
+      border-left: 3px solid var(--red);
+    }
+
+    .research-card strong {
+      display: block;
+      font-size: 8pt;
+      font-weight: 800;
+      margin-bottom: 3px;
+      color: var(--text);
+    }
+
+    .research-card span {
+      font-size: 7.5pt;
+      color: var(--sub);
+      line-height: 1.55;
+    }
+
+    /* ── USER JOURNEY ── */
+    .journey {
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .journey-step {
+      display: flex;
+      gap: 12px;
+      position: relative;
+      padding-bottom: 16px;
+    }
+
+    .journey-step:last-child {
+      padding-bottom: 0;
+    }
+
+    .journey-step::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 22px;
+      bottom: 0;
+      width: 1px;
+      background: var(--border);
+    }
+
+    .journey-step:last-child::before {
+      display: none;
+    }
+
+    .step-num {
+      flex-shrink: 0;
+      width: 21px;
+      height: 21px;
+      border-radius: 50%;
+      background: var(--dark);
+      color: white;
+      font-size: 7pt;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .journey-step.highlight .step-num {
+      background: var(--red);
+    }
+
+    .step-body strong {
+      display: block;
+      font-size: 8.5pt;
+      font-weight: 700;
+      margin-bottom: 2px;
+      margin-top: 2px;
+    }
+
+    .step-body span {
+      font-size: 7.5pt;
+      color: var(--sub);
+      line-height: 1.55;
+    }
+
+    .step-tag {
+      display: inline-block;
+      margin-top: 3px;
+      font-size: 6pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: white;
+      background: var(--red);
+      padding: 1px 5px;
+    }
+
+    /* ── PROTOTYPE BOX ── */
+    .proto-section {
+      margin-top: auto;
+    }
+
+    .proto-box {
+      border: 1px solid var(--border);
+      background: var(--light);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .proto-label {
+      font-size: 6pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 2.5px;
+      color: var(--muted);
+    }
+
+    #qrcode {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .qr-placeholder {
+      width: 120px;
+      height: 120px;
+      background: var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .qr-placeholder span {
+      font-size: 7pt;
+      color: var(--muted);
+      text-align: center;
+      padding: 0 8px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .proto-url {
+      font-size: 7pt;
+      color: var(--muted);
+      text-align: center;
+      word-break: break-all;
+      font-family: 'Courier New', monospace;
+      max-width: 100%;
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 10px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: white;
+    }
+
+    .footer span {
+      font-size: 7pt;
+      color: var(--muted);
+    }
+
+    .footer .author {
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* ── PRINT ── */
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      .page {
+        box-shadow: none;
+        width: 100%;
+        min-height: 100vh;
+      }
+      .print-btn {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <button class="print-btn" onclick="window.print()">Drucken / Als PDF speichern</button>
+
+  <div class="page">
+
+    <!-- HEADER -->
+    <header class="header">
+      <div class="logo">SRF</div>
+      <div class="header-meta">
+        <div class="eyebrow">Konzeptpräsentation</div>
+        <div class="title">Interaktive Live Experience</div>
+      </div>
+    </header>
+
+    <!-- TAGLINE -->
+    <div class="tagline">
+      <p>«Kollektive Emotion sichtbar machen — <em>Live, geteilt, in Echtzeit.</em>»</p>
+    </div>
+
+    <!-- CONTENT GRID -->
+    <div class="content">
+
+      <!-- LEFT COLUMN -->
+      <div class="col-left">
+
+        <!-- KONZEPT -->
+        <section>
+          <div class="section-tag">Konzept</div>
+          <p>
+            Der <strong>SRF Sport Live Companion</strong> ist ein interaktiver Begleiter-Panel, der sich während eines Livestreams von unten einblendet. Fans können Reactions absetzen, einen Live-Tipp abgeben und Team-Stats einsehen — ohne den Stream zu verlassen.
+          </p>
+          <p>
+            Die Differenzierung liegt im <strong>Fan Eruption-State</strong>: Bei einem kollektiven Peak (Tor, Spielende, Entscheid) verwandelt sich der Panel in einen gemeinsamen Moment — Tausende Fans reagieren gleichzeitig, sichtbar und spürbar.
+          </p>
+          <div class="konzept-highlight">
+            Während andere Konzepte reine Informations-Overlays liefern, macht dieser Ansatz kollektive Emotion greifbar — das «Wir» im digitalen Stadion.
+          </div>
+        </section>
+
+        <!-- DESIGN-ENTSCHEIDE -->
+        <section>
+          <div class="section-tag">Design-Entscheide</div>
+          <ul class="decisions">
+            <li>
+              <div class="d-num">1</div>
+              <div class="d-body">
+                <strong>Slide-up Panel statt Overlay</strong>
+                <span>Nicht störend — der Fan öffnet den Companion selbst und behält die volle Kontrolle über den Stream.</span>
+              </div>
+            </li>
+            <li>
+              <div class="d-num">2</div>
+              <div class="d-body">
+                <strong>Fan Eruption als kollektiver State</strong>
+                <span>Automatisch ausgelöst bei messbarem kollektivem Peak. Macht das «Wir»-Gefühl greifbar statt abstrakt — ein Alleinstellungsmerkmal.</span>
+              </div>
+            </li>
+            <li>
+              <div class="d-num">3</div>
+              <div class="d-body">
+                <strong>Quick-Reactions: niedrige Hemmschwelle</strong>
+                <span>Ein einziger Tap — keine Anmeldung, keine Texteingabe. Bequem auf dem Sofa bedienbar, auch im Hochformat.</span>
+              </div>
+            </li>
+            <li>
+              <div class="d-num">4</div>
+              <div class="d-body">
+                <strong>Live-Tipp statt Glücksspiel</strong>
+                <span>Persönliche Vorhersagen erhöhen das Engagement und schaffen Stakes — ohne Glücksspiel-Regulierung zu berühren.</span>
+              </div>
+            </li>
+          </ul>
+        </section>
+
+        <!-- FORSCHUNG -->
+        <section>
+          <div class="section-tag">Forschungsgrundlage</div>
+          <div class="research-grid">
+            <div class="research-card">
+              <strong>Tension Design</strong>
+              <span>Gutes Interaction Design baut Spannung auf und löst sie kontrolliert. Im Sportkontext: Die emotionale Spannung des Spiels wird kanalisiert und im Fan Eruption-State kollektiv entladen — ein bewusst gesetzter Spannungs-Release-Moment.</span>
+            </div>
+            <div class="research-card">
+              <strong>Service Chain</strong>
+              <span>Die Interaktionskette <em>Zuschauer → Companion-Nutzer → Eruption-Teilnehmer</em> führt den User stufenlos tiefer in die Erfahrung. Jede Stufe hat einen klaren Mehrwert — ohne Zwang, mit echter Belohnung.</span>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="col-right">
+
+        <!-- USER JOURNEY -->
+        <section>
+          <div class="section-tag">User Journey — 5 Screens</div>
+          <div class="journey">
+
+            <div class="journey-step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <strong>SRF Sport Homescreen</strong>
+                <span>Gewohnter Einstieg in die App — keine Lernkurve, maximale Vertrautheit.</span>
+              </div>
+            </div>
+
+            <div class="journey-step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <strong>Livestream + Companion CTA</strong>
+                <span>Match läuft. Ein sanfter Hinweis lädt zum Öffnen des Panels ein — opt-in, nie aufdringlich.</span>
+              </div>
+            </div>
+
+            <div class="journey-step highlight">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <strong>Companion Panel (Default)</strong>
+                <span>Reactions, Live-Tipp und Team-Stats — auf einen Wisch zugänglich, ohne den Stream zu verlassen.</span>
+                <div class="step-tag">Kerninteraktion</div>
+              </div>
+            </div>
+
+            <div class="journey-step highlight">
+              <div class="step-num">4</div>
+              <div class="step-body">
+                <strong>Fan Eruption State</strong>
+                <span>Kollektiver Peak erkannt. Das Panel verwandelt sich — alle Fans reagieren gleichzeitig, sichtbar und gemeinsam.</span>
+                <div class="step-tag">Alleinstellungsmerkmal</div>
+              </div>
+            </div>
+
+            <div class="journey-step">
+              <div class="step-num">5</div>
+              <div class="step-body">
+                <strong>Tipp bestätigt</strong>
+                <span>Persönliche Vorhersage gespeichert. Eine kurze, satisfying Bestätigung schliesst die Interaktionskette ab.</span>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- PROTOTYPE -->
+        <section class="proto-section">
+          <div class="section-tag">Interaktiver Prototyp</div>
+          <div class="proto-box">
+            <div class="proto-label">Prototype scannen oder aufrufen</div>
+            <div id="qrcode"></div>
+            <div class="proto-url" id="proto-url-display"></div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <span class="author">Shain Gerstner</span>
+      <span>IAD15 — 4. Semester | Modul Interaktivität</span>
+      <span>Mai 2026</span>
+    </footer>
+
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    // TODO: Ersetze diese URL mit der finalen Prototype-URL
+    const PROTOTYPE_URL = 'https://shainzen1.github.io/IAD-Interaktivitaet-Sem.4-prototype/';
+
+    const urlDisplay = document.getElementById('proto-url-display');
+    const qrEl = document.getElementById('qrcode');
+
+    const isPlaceholder = PROTOTYPE_URL.includes('YOUR_PROTOTYPE_URL');
+
+    urlDisplay.textContent = isPlaceholder ? '— URL ausstehend —' : PROTOTYPE_URL;
+
+    if (!isPlaceholder) {
+      try {
+        new QRCode(qrEl, {
+          text: PROTOTYPE_URL,
+          width: 120,
+          height: 120,
+          colorDark: '#1A1A1A',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } catch (e) {
+        qrEl.innerHTML = '<div class="qr-placeholder"><span>QR Code</span></div>';
+      }
+    } else {
+      qrEl.innerHTML = `
+        <div class="qr-placeholder">
+          <span>QR Code folgt nach Deployment</span>
+        </div>`;
+    }
+  </script>
+</body>
+</html>
