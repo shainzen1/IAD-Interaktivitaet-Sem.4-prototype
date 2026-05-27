@@ -406,16 +406,18 @@
     z-index: 5;
   }
   .ls-play {
-    width: 40px; height: 40px;
-    background: rgba(255,255,255,0.95);
+    width: 28px; height: 28px;
+    background: transparent;
     border: none;
-    border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
-    color: #111;
-    font-size: 14px;
+    color: rgba(255,255,255,0.9);
+    font-size: 11px;
+    letter-spacing: 1px;
     flex-shrink: 0;
+    padding: 0;
   }
+  .ls-play:hover { color: var(--white); }
   .ls-progress {
     flex: 1;
     display: flex; flex-direction: column;
@@ -1001,6 +1003,70 @@
   .phone.landscape .eruption-counter { font-size: 38px; margin-bottom: 4px; }
   .phone.landscape .eruption-counter-label { font-size: 10px; margin-bottom: 20px; }
 
+  /* In-game eruption overlay (landscape Flow A) — sits on top of the video */
+  .lstream-eruption-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    background: radial-gradient(ellipse at center, rgba(227,31,43,0.35) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.7) 100%);
+  }
+  .lstream-eruption-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+  #lstream-eruption-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .lstream-eruption-content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 24px;
+  }
+  .lstream-eruption-content .eruption-logo { font-size: 11px; margin-bottom: 10px; }
+  .lstream-eruption-content .eruption-word {
+    font-size: 84px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -3px;
+    line-height: 1;
+    margin-bottom: 10px;
+    animation: eruption-pulse 0.8s ease-in-out infinite alternate;
+    text-shadow: 0 0 40px rgba(227,31,43,0.8);
+  }
+  .lstream-eruption-content .eruption-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.85);
+    margin-bottom: 18px;
+    line-height: 1.5;
+  }
+  .lstream-eruption-content .eruption-counter {
+    font-size: 36px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -1.5px;
+    margin-bottom: 2px;
+  }
+  .lstream-eruption-content .eruption-counter-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
   .zuruck-btn {
     background: rgba(255,255,255,0.1);
     border: 1px solid rgba(255,255,255,0.15);
@@ -1103,6 +1169,287 @@
   }
   .rank-text { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.7); line-height: 1.4; }
   .rank-text strong { color: var(--white); display: block; }
+
+  /* ─── SCREEN: TIPP EDIT (input + friends ranking) ─── */
+  #s-edit {
+    background: var(--dark);
+  }
+  .edit-header {
+    padding: 18px 22px 6px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .edit-back {
+    width: 32px; height: 32px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--white);
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .edit-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: 0.3px;
+  }
+  .edit-subtitle {
+    padding: 0 22px;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .edit-tipp-card {
+    margin: 0 22px 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    padding: 18px 16px 20px;
+  }
+  .edit-teams {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .edit-teams .sep {
+    color: rgba(255,255,255,0.3);
+    font-weight: 600;
+  }
+  .edit-score-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 10px;
+  }
+  .edit-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+  }
+  .edit-stepper-btn {
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+    color: var(--white);
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .edit-stepper-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .edit-stepper-val {
+    font-size: 38px;
+    font-weight: 900;
+    color: var(--white);
+    min-width: 38px;
+    text-align: center;
+    letter-spacing: -1px;
+  }
+  .edit-sep {
+    font-size: 28px;
+    font-weight: 900;
+    color: rgba(255,255,255,0.4);
+  }
+  .edit-points {
+    margin: 0 22px 20px;
+    background: linear-gradient(135deg, rgba(227,31,43,0.18), rgba(227,31,43,0.06));
+    border: 1px solid rgba(227,31,43,0.3);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .edit-points-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+  }
+  .edit-points-val {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--red);
+    letter-spacing: -0.5px;
+  }
+  .friends-section {
+    padding: 0 22px;
+    margin-bottom: 16px;
+  }
+  .friends-head {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 10px;
+  }
+  .friends-list {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .friend-row {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .friend-row:last-child { border-bottom: none; }
+  .friend-row.is-me {
+    background: rgba(227,31,43,0.08);
+  }
+  .friend-rank {
+    font-size: 12px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.4);
+    text-align: center;
+  }
+  .friend-row.is-me .friend-rank { color: var(--red); }
+  .friend-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .friend-name-sub {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.3px;
+  }
+  .friend-points {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: 0.2px;
+  }
+  .friend-points span { color: rgba(255,255,255,0.4); font-weight: 600; font-size: 10px; margin-left: 3px; }
+
+  .edit-footer {
+    padding: 12px 22px 22px;
+    background: var(--dark);
+    border-top: 1px solid rgba(255,255,255,0.05);
+    position: sticky;
+    bottom: 0;
+  }
+  .edit-confirm-btn {
+    width: 100%;
+    background: var(--red);
+    color: var(--white);
+    font-family: var(--srf-font);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 4px;
+    padding: 15px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(227,31,43,0.35);
+    transition: transform 0.15s;
+  }
+  .edit-confirm-btn:active { transform: scale(0.98); }
+
+  /* Lock-in confirmation modal */
+  .lock-modal {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 30;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .lock-modal.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .lock-card {
+    width: calc(100% - 44px);
+    max-width: 320px;
+    background: #181818;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 22px 22px 18px;
+    text-align: center;
+    transform: translateY(12px) scale(0.97);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .lock-modal.open .lock-card { transform: translateY(0) scale(1); }
+  .lock-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--white);
+    margin-bottom: 8px;
+    letter-spacing: 0.2px;
+  }
+  .lock-sub {
+    font-size: 12.5px;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.5;
+    margin-bottom: 18px;
+  }
+  .lock-sub strong { color: var(--white); }
+  .lock-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .lock-cancel {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.85);
+    font-family: var(--srf-font);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    border-radius: 4px;
+    padding: 12px;
+    cursor: pointer;
+  }
+  .lock-confirm {
+    background: var(--red);
+    border: none;
+    color: var(--white);
+    font-family: var(--srf-font);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    border-radius: 4px;
+    padding: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(227,31,43,0.4);
+  }
 
   .back-companion-btn {
     background: rgba(255,255,255,0.08);
@@ -1363,19 +1710,11 @@
 
       <div class="lstream-top">
         <button class="lstream-back" id="s2-back" aria-label="Zurück">‹</button>
-        <div class="lstream-scoreboard">
-          <span class="ls-team"><span class="ls-flag">🇨🇭</span>SUI</span>
-          <span class="ls-score">1 — 1</span>
-          <span class="ls-team">FRA<span class="ls-flag">🇫🇷</span></span>
-          <span class="ls-time">67'</span>
-          <span class="ls-live-pill">Live</span>
-        </div>
         <div class="lstream-top-right">
           <button class="ls-cast" id="ls-cast" aria-label="Auf TV streamen">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20a2 2 0 0 1 2-2"/><path d="M2 16a6 6 0 0 1 6 6"/><path d="M2 12a10 10 0 0 1 10 10"/><rect x="2" y="6" width="20" height="12" rx="2"/></svg>
             <span>Auf TV</span>
           </button>
-          <div class="lstream-meta">UEFA Nations League</div>
         </div>
       </div>
 
@@ -1468,6 +1807,18 @@
           </div>
         </div>
       </aside>
+
+      <!-- In-game eruption overlay (landscape Flow A) -->
+      <div class="lstream-eruption-overlay" id="lstream-eruption">
+        <canvas id="lstream-eruption-canvas"></canvas>
+        <div class="lstream-eruption-content">
+          <div class="eruption-logo"><span>srf</span> sport</div>
+          <div class="eruption-word">TOR!</div>
+          <div class="eruption-sub">56.000 Fans erleben<br>diesen Moment mit dir</div>
+          <div class="eruption-counter" id="lstream-eruption-counter">0</div>
+          <div class="eruption-counter-label">Fan-Reaktionen</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1603,13 +1954,95 @@
   </div>
 
   <!-- ═══════════════════════════════════════════
+       SCREEN EDIT: TIPP INPUT + FRIENDS RANKING
+  ═══════════════════════════════════════════ -->
+  <div id="s-edit" class="screen">
+    <div class="edit-header">
+      <button class="edit-back" id="edit-back" aria-label="Zurück">‹</button>
+      <div class="edit-title">Dein Tipp</div>
+    </div>
+    <div class="edit-subtitle">SUI — FRA · UEFA Nations League · 67'</div>
+
+    <div class="edit-tipp-card">
+      <div class="edit-teams">
+        <span>SUI 🇨🇭</span>
+        <span class="sep">vs</span>
+        <span>🇫🇷 FRA</span>
+      </div>
+      <div class="edit-score-row">
+        <div class="edit-stepper">
+          <button class="edit-stepper-btn" id="edit-home-minus">−</button>
+          <span class="edit-stepper-val" id="edit-home-val">2</span>
+          <button class="edit-stepper-btn" id="edit-home-plus">+</button>
+        </div>
+        <span class="edit-sep">:</span>
+        <div class="edit-stepper">
+          <button class="edit-stepper-btn" id="edit-away-minus">−</button>
+          <span class="edit-stepper-val" id="edit-away-val">1</span>
+          <button class="edit-stepper-btn" id="edit-away-plus">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="edit-points">
+      <span class="edit-points-label">Bei richtigem Tipp</span>
+      <span class="edit-points-val" id="edit-points-val">+150 Pkt</span>
+    </div>
+
+    <div class="friends-section">
+      <div class="friends-head">Freunde-Rangliste · Saison</div>
+      <div class="friends-list">
+        <div class="friend-row">
+          <div class="friend-rank">1</div>
+          <div class="friend-name">Lena <span class="friend-name-sub">· 12 Tipps</span></div>
+          <div class="friend-points">580<span>Pkt</span></div>
+        </div>
+        <div class="friend-row">
+          <div class="friend-rank">2</div>
+          <div class="friend-name">Tim <span class="friend-name-sub">· 11 Tipps</span></div>
+          <div class="friend-points">435<span>Pkt</span></div>
+        </div>
+        <div class="friend-row is-me">
+          <div class="friend-rank">3</div>
+          <div class="friend-name">Du <span class="friend-name-sub">· 10 Tipps</span></div>
+          <div class="friend-points">290<span>Pkt</span></div>
+        </div>
+        <div class="friend-row">
+          <div class="friend-rank">4</div>
+          <div class="friend-name">Mira <span class="friend-name-sub">· 10 Tipps</span></div>
+          <div class="friend-points">240<span>Pkt</span></div>
+        </div>
+        <div class="friend-row">
+          <div class="friend-rank">5</div>
+          <div class="friend-name">Jonas <span class="friend-name-sub">· 9 Tipps</span></div>
+          <div class="friend-points">180<span>Pkt</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1;"></div>
+
+    <div class="edit-footer">
+      <button class="edit-confirm-btn" id="edit-confirm">Tipp sperren →</button>
+    </div>
+
+    <!-- Lock-in confirmation modal -->
+    <div class="lock-modal" id="lock-modal">
+      <div class="lock-card">
+        <div class="lock-title">Tipp sperren?</div>
+        <div class="lock-sub">Du tippst <strong id="lock-score">2 : 1</strong> auf SUI — FRA.<br>Nach dem Sperren kannst du den Tipp nicht mehr ändern.</div>
+        <div class="lock-actions">
+          <button class="lock-cancel" id="lock-cancel">Abbrechen</button>
+          <button class="lock-confirm" id="lock-confirm">Ja, sperren</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
        SCREEN 5: TIPP CONFIRMED
   ═══════════════════════════════════════════ -->
   <div id="s5" class="screen">
-    <div class="status-bar">
-      <span class="status-time">9:41</span>
-      <div class="status-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
-    </div>
     <div style="flex:1;display:flex;align-items:center;justify-content:center;">
       <div class="tipp-confirmed-wrap">
         <div class="check-circle">✓</div>
@@ -1630,7 +2063,7 @@
           </div>
         </div>
 
-        <button class="back-companion-btn" id="go-s3-from-s5">↩ Zurück zum Companion</button>
+        <button class="back-companion-btn" id="go-s3-from-s5">↩ Zurück zum Spiel</button>
       </div>
     </div>
   </div>
@@ -1713,12 +2146,11 @@
     companionMode = null;
   });
 
-  // Landscape side-panel → Tipp (rotates to portrait s5)
+  // Landscape side-panel → Tipp (rotates to portrait s-edit)
   document.getElementById('lsp-go-tipp').addEventListener('click', () => {
     clearTimeout(eruptionAutoTimer);
-    document.getElementById('tipp-result-display').textContent = homeGoals + ' : ' + awayGoals;
     closeLandscapePanel();
-    setTimeout(() => showScreen('s5'), 200);
+    setTimeout(() => showScreen('s-edit'), 200);
   });
 
   // Cast icon → cast confirm flow (Flow B)
@@ -1771,11 +2203,39 @@
   // Cast banner "Stop" button
   document.getElementById('cast-stop').addEventListener('click', stopCasting);
 
-  // Screen 3 → 5 (tipp from portrait companion)
+  // Screen 3 → edit (tipp from portrait companion)
   document.getElementById('go-s5').addEventListener('click', () => {
     clearTimeout(eruptionAutoTimer);
+    showScreen('s-edit');
+  });
+
+  // s-edit back → return to whichever companion mode was active
+  document.getElementById('edit-back').addEventListener('click', () => {
+    if (companionMode === 'landscape') {
+      showScreen('s2');
+      openLandscapePanel();
+    } else if (companionMode === 'cast') {
+      showScreen('s3');
+    } else {
+      showScreen('s2');
+    }
+    scheduleEruptionAuto();
+  });
+
+  // s-edit confirm → open lock-in modal
+  document.getElementById('edit-confirm').addEventListener('click', () => {
+    document.getElementById('lock-score').textContent = homeGoals + ' : ' + awayGoals;
+    document.getElementById('lock-modal').classList.add('open');
+  });
+  document.getElementById('lock-cancel').addEventListener('click', () => {
+    document.getElementById('lock-modal').classList.remove('open');
+  });
+  document.getElementById('lock-confirm').addEventListener('click', () => {
+    document.getElementById('lock-modal').classList.remove('open');
     document.getElementById('tipp-result-display').textContent = homeGoals + ' : ' + awayGoals;
-    showScreen('s5');
+    const pts = 100 + (homeGoals + awayGoals) * 25;
+    document.getElementById('points-display').textContent = '+' + pts + ' Punkte';
+    setTimeout(() => showScreen('s5'), 180);
   });
 
   // Screen 4 → companion (eruption returns to active companion mode)
@@ -1791,30 +2251,45 @@
     scheduleEruptionAuto();
   });
 
-  // Screen 5 → companion
+  // Screen 5 (tipp gespeichert) → back to live game
   document.getElementById('go-s3-from-s5').addEventListener('click', () => {
-    if (companionMode === 'landscape') {
+    if (companionMode === 'cast') {
+      showScreen('s3');
+    } else {
+      // default: return to landscape live view with companion open
+      companionMode = 'landscape';
       showScreen('s2');
       openLandscapePanel();
-    } else {
-      showScreen('s3');
     }
     scheduleEruptionAuto();
   });
 
-  // ── Tipp steppers ──
+  // ── Tipp steppers (shared between s3 inline and s-edit) ──
+  const stepperEls = {
+    homeVal: ['home-val', 'edit-home-val'],
+    awayVal: ['away-val', 'edit-away-val'],
+    homeMinus: ['home-minus', 'edit-home-minus'],
+    homePlus: ['home-plus', 'edit-home-plus'],
+    awayMinus: ['away-minus', 'edit-away-minus'],
+    awayPlus: ['away-plus', 'edit-away-plus'],
+  };
+  function setAll(ids, fn) { ids.forEach(id => { const el = document.getElementById(id); if (el) fn(el); }); }
   function updateTipp() {
-    document.getElementById('home-val').textContent = homeGoals;
-    document.getElementById('away-val').textContent = awayGoals;
-    document.getElementById('home-minus').disabled = (homeGoals === 0);
-    document.getElementById('home-plus').disabled = (homeGoals === 9);
-    document.getElementById('away-minus').disabled = (awayGoals === 0);
-    document.getElementById('away-plus').disabled = (awayGoals === 9);
+    setAll(stepperEls.homeVal, el => el.textContent = homeGoals);
+    setAll(stepperEls.awayVal, el => el.textContent = awayGoals);
+    setAll(stepperEls.homeMinus, el => el.disabled = (homeGoals === 0));
+    setAll(stepperEls.homePlus, el => el.disabled = (homeGoals === 9));
+    setAll(stepperEls.awayMinus, el => el.disabled = (awayGoals === 0));
+    setAll(stepperEls.awayPlus, el => el.disabled = (awayGoals === 9));
+    // Points preview: base 100 + 25 per goal predicted
+    const pts = 100 + (homeGoals + awayGoals) * 25;
+    const editPts = document.getElementById('edit-points-val');
+    if (editPts) editPts.textContent = '+' + pts + ' Pkt';
   }
-  document.getElementById('home-plus').addEventListener('click', () => { homeGoals = Math.min(9, homeGoals + 1); updateTipp(); });
-  document.getElementById('home-minus').addEventListener('click', () => { homeGoals = Math.max(0, homeGoals - 1); updateTipp(); });
-  document.getElementById('away-plus').addEventListener('click', () => { awayGoals = Math.min(9, awayGoals + 1); updateTipp(); });
-  document.getElementById('away-minus').addEventListener('click', () => { awayGoals = Math.max(0, awayGoals - 1); updateTipp(); });
+  stepperEls.homePlus.forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('click', () => { homeGoals = Math.min(9, homeGoals + 1); updateTipp(); }); });
+  stepperEls.homeMinus.forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('click', () => { homeGoals = Math.max(0, homeGoals - 1); updateTipp(); }); });
+  stepperEls.awayPlus.forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('click', () => { awayGoals = Math.min(9, awayGoals + 1); updateTipp(); }); });
+  stepperEls.awayMinus.forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('click', () => { awayGoals = Math.max(0, awayGoals - 1); updateTipp(); }); });
   updateTipp();
 
   // ── Reactions ──
@@ -1901,22 +2376,39 @@
   // ── Eruption ──
   let particleAnim = null;
   let particles = [];
+  let eruptionMode = null; // 'overlay' (landscape, in-game) | 'screen' (cast, full screen)
+  const lstreamEruption = document.getElementById('lstream-eruption');
 
   function triggerEruption() {
     clearTimeout(eruptionAutoTimer);
     clearTimeout(energieTimer);
-    showScreen('s4');
-    startParticles();
-    animateCounter();
 
-    // Auto return after 5s to whichever companion mode was active
+    if (companionMode === 'landscape') {
+      // In-game overlay: close side panel, show TOR! over the video
+      eruptionMode = 'overlay';
+      closeLandscapePanel();
+      lstreamEruption.classList.add('active');
+      startParticles('lstream-eruption-canvas', true);
+      animateCounter('lstream-eruption-counter');
+    } else {
+      // Cast or fallback: full-screen eruption
+      eruptionMode = 'screen';
+      showScreen('s4');
+      startParticles('eruption-canvas', false);
+      animateCounter('eruption-counter');
+    }
+
+    // Auto return after 5s
     setTimeout(() => {
-      if (currentScreen === 's4') {
+      if (eruptionMode === 'overlay') {
         stopEruption();
-        if (companionMode === 'landscape') {
-          showScreen('s2');
-          openLandscapePanel();
-        } else if (companionMode === 'cast') {
+        lstreamEruption.classList.remove('active');
+        // Reopen the side panel so the user can continue engaging
+        if (companionMode === 'landscape') openLandscapePanel();
+        resetEnergieBlock();
+      } else if (eruptionMode === 'screen' && currentScreen === 's4') {
+        stopEruption();
+        if (companionMode === 'cast') {
           showScreen('s3');
         } else {
           showScreen('s2');
@@ -1932,14 +2424,18 @@
     if (particleAnim) cancelAnimationFrame(particleAnim);
     particleAnim = null;
     particles = [];
-    const canvas = document.getElementById('eruption-canvas');
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ['eruption-canvas', 'lstream-eruption-canvas'].forEach(id => {
+      const c = document.getElementById(id);
+      if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+    });
+    eruptionMode = null;
   }
 
-  function startParticles() {
-    const canvas = document.getElementById('eruption-canvas');
-    const landscape = phoneEl.classList.contains('landscape');
+  function startParticles(canvasId, landscapeOverride) {
+    const canvas = document.getElementById(canvasId);
+    const landscape = landscapeOverride !== undefined
+      ? landscapeOverride
+      : phoneEl.classList.contains('landscape');
     canvas.width = landscape ? 844 : 390;
     canvas.height = landscape ? 390 : 844;
     const ctx = canvas.getContext('2d');
@@ -2018,7 +2514,7 @@
         });
       }
 
-      if (currentScreen === 's4') {
+      if (eruptionMode) {
         particleAnim = requestAnimationFrame(draw);
       }
     }
@@ -2027,8 +2523,8 @@
   }
 
   // Counter animation
-  function animateCounter() {
-    const el = document.getElementById('eruption-counter');
+  function animateCounter(elId) {
+    const el = document.getElementById(elId);
     const target = 56000;
     const duration = 2000;
     const start = performance.now();
