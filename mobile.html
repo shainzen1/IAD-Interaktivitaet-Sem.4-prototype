@@ -1,0 +1,3990 @@
+<!DOCTYPE html>
+<!--
+  MOBILE FORK — diverges from index.html on:
+   • viewport meta (user-scalable=no, viewport-fit=cover)
+   • body / .phone wrapper (full-bleed, no device-frame chrome)
+   • .status-bar hidden, safe-area padding on .screen
+   • landscape driven by real device orientation (matchMedia), not faked CSS class
+   • added #rotate-hint overlay + .tap-hint pulse on s1
+   • DPR-aware eruption canvas sizing
+   • safe-area-inset-bottom on .bottom-nav + .lstream-side-panel
+   • desktop scale-down media queries removed
+  Sync window: cherry-pick desktop content updates by hand before 29.05.2026.
+-->
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>SRF Sport — Live Companion (Mobile)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --red: #e31f2b;
+    --dark: #1A1A1A;
+    --card: #2C2C2C;
+    --subtle: #3D3D3D;
+    --light: #F5F5F5;
+    --white: #FFFFFF;
+    --green: #00C853;
+    --srf-font: 'SRG SSR Type Text VF', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  }
+
+  body {
+    background: var(--dark);
+    font-family: var(--srf-font);
+    letter-spacing: 0.2px;
+    min-height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  /* Full-bleed viewport — no device-frame mockup on real phones */
+  .phone {
+    width: 100dvw;
+    height: 100dvh;
+    background: var(--dark);
+    overflow: hidden;
+    position: relative;
+  }
+  .phone.landscape {
+    /* No-op on real devices — orientation is real, class stays for descendant selectors */
+    width: 100dvw;
+    height: 100dvh;
+  }
+
+  /* Screens */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    overflow: hidden;
+    padding-top: env(safe-area-inset-top);
+  }
+  .screen.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* ─── STATUS BAR (hidden on mobile — real OS status bar above page) ─── */
+  .status-bar {
+    display: none !important;
+  }
+  .status-time { font-size: 15px; font-weight: 700; }
+  .status-icons { display: flex; gap: 6px; align-items: center; }
+
+  /* ─── ROTATION HINT (s2 / s4-landscape only) ─── */
+  .rotate-hint {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: rgba(10,10,10,0.96);
+    color: var(--white);
+    text-align: center;
+    padding: env(safe-area-inset-top) 24px env(safe-area-inset-bottom);
+  }
+  .rotate-hint.show { display: flex; }
+  .rotate-hint-icon {
+    font-size: 64px;
+    animation: rotate-wiggle 1.6s ease-in-out infinite;
+    transform-origin: center;
+  }
+  .rotate-hint-title {
+    font-size: 18px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+  }
+  .rotate-hint-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.65);
+    max-width: 280px;
+    line-height: 1.4;
+  }
+  @keyframes rotate-wiggle {
+    0%, 100% { transform: rotate(-15deg); }
+    50%      { transform: rotate(75deg); }
+  }
+
+  /* ─── S1 TAP HINT (only visible on first screen, hides after first navigation) ─── */
+  .tap-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(96px + env(safe-area-inset-bottom));
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+    pointer-events: none;
+    z-index: 5;
+    animation: tap-hint-pulse 1.8s ease-in-out infinite;
+  }
+  .tap-hint.hidden { display: none; }
+  @keyframes tap-hint-pulse {
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 1; }
+  }
+
+  /* ─── SCREEN 1: HOMESCREEN ─── */
+  #s1 { background: var(--dark); }
+
+  .s1-header {
+    padding: 0 20px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .srf-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: var(--white);
+    text-transform: uppercase;
+  }
+  .srf-logo .srf-mark {
+    background: var(--red);
+    color: var(--white);
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.6px;
+    padding: 4px 6px 3px;
+    border-radius: 2px;
+    line-height: 1;
+  }
+
+  .avatar {
+    width: 32px; height: 32px;
+    background: var(--subtle);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: var(--white);
+  }
+
+  .tab-nav {
+    display: flex;
+    padding: 0 20px;
+    gap: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 16px;
+  }
+  .tab-nav a {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.5);
+    padding: 10px 14px 12px;
+    text-decoration: none;
+    position: relative;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .tab-nav a:not(.active) { opacity: 0.7; }
+  .tab-nav a.active {
+    color: var(--white);
+    opacity: 1;
+  }
+  .tab-nav a.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 14px; right: 14px;
+    height: 2px;
+    background: var(--red);
+  }
+
+  .feed { flex: 1; overflow-y: auto; padding: 0 16px; scrollbar-width: none; }
+  .feed::-webkit-scrollbar { display: none; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  /* Featured match card */
+  .match-card-featured {
+    background: var(--card);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .match-card-featured::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--red);
+  }
+  .match-card-featured:active { transform: scale(0.98); }
+
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    background: var(--red);
+    border-radius: 2px;
+    padding: 3px 6px 2px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    line-height: 1;
+  }
+
+  .match-teams {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .team { text-align: center; flex: 1; }
+  .team-flag { font-size: 28px; margin-bottom: 4px; display: block; }
+  .team-name { font-size: 13px; font-weight: 700; color: var(--white); }
+  .score-block { text-align: center; padding: 0 12px; }
+  .score-main { font-size: 36px; font-weight: 900; color: var(--white); letter-spacing: -2px; line-height: 1; }
+  .score-time { font-size: 11px; color: var(--red); font-weight: 700; margin-top: 2px; }
+
+  .match-meta { font-size: 11px; color: rgba(255,255,255,0.55); font-weight: 500; }
+
+  /* Upcoming cards */
+  .match-card-small {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .match-card-small .teams-small { font-size: 13px; font-weight: 600; color: var(--white); }
+  .match-card-small .meta-small { font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 2px; }
+  .match-card-small .time-badge {
+    background: rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.6);
+  }
+
+  /* Bottom nav */
+  .bottom-nav {
+    min-height: 80px;
+    background: rgba(26,26,26,0.95);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: flex-start;
+    padding-top: 10px;
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+    flex-shrink: 0;
+    backdrop-filter: blur(12px);
+  }
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+  }
+  .nav-item:not(.active) { opacity: 0.5; }
+  .nav-icon { display: inline-flex; color: rgba(255,255,255,0.4); }
+  .nav-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.4); letter-spacing: 0.4px; }
+  .nav-item.active .nav-icon { color: var(--white); }
+  .nav-item.active .nav-label { color: var(--white); }
+
+  /* ─── SCREEN 2: LIVESTREAM (LANDSCAPE) ─── */
+  #s2 { background: #000; }
+
+  .lstream {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  .lstream-video {
+    position: absolute;
+    inset: 0;
+    background-color: #1a3d1a;
+    background-image:
+      linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 100%),
+      url("https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&w=1600&q=70");
+    background-size: cover;
+    background-position: center;
+  }
+  .lstream-video::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.8) 100%);
+  }
+
+  .lstream-top {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    z-index: 5;
+  }
+  .lstream-back {
+    width: 36px; height: 36px;
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    color: var(--white);
+    backdrop-filter: blur(8px);
+    flex-shrink: 0;
+  }
+  .lstream-scoreboard {
+    display: inline-flex;
+    align-items: stretch;
+    background: rgba(10,10,10,0.78);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 4px;
+    backdrop-filter: blur(10px);
+    font-size: 13px;
+    overflow: hidden;
+  }
+  .ls-team {
+    padding: 7px 12px;
+    color: var(--white);
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ls-flag { font-size: 16px; line-height: 1; }
+  .ls-score {
+    padding: 7px 14px;
+    color: var(--white);
+    font-weight: 800;
+    letter-spacing: 1px;
+    background: rgba(255,255,255,0.05);
+  }
+  .ls-time {
+    padding: 7px 10px;
+    color: rgba(255,255,255,0.55);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    border-left: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center;
+  }
+  .ls-live-pill {
+    background: var(--red);
+    color: var(--white);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 3px 6px 2px;
+    border-radius: 2px;
+    line-height: 1;
+    margin-left: 8px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .lstream-top-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .lstream-meta {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+    background: rgba(0,0,0,0.45);
+    padding: 6px 10px;
+    border-radius: 4px;
+    backdrop-filter: blur(8px);
+  }
+  .ls-cast {
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--white);
+    border-radius: 4px;
+    padding: 6px 10px 6px 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--srf-font);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: background 0.15s ease;
+  }
+  .ls-cast:hover { background: rgba(0,0,0,0.65); }
+  .ls-cast.active {
+    background: var(--red);
+    border-color: var(--red);
+  }
+  .ls-cast svg { display: block; }
+
+  .lstream-controls {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 16px 18px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    z-index: 5;
+  }
+  .ls-play {
+    width: 28px; height: 28px;
+    background: transparent;
+    border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: rgba(255,255,255,0.9);
+    font-size: 11px;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+    padding: 0;
+  }
+  .ls-play:hover { color: var(--white); }
+  .ls-progress {
+    flex: 1;
+    display: flex; flex-direction: column;
+    gap: 6px;
+  }
+  .ls-progress-track {
+    height: 3px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .ls-progress-fill {
+    height: 100%;
+    background: var(--red);
+    width: 72%;
+    border-radius: 2px;
+    position: relative;
+  }
+  .ls-progress-fill::after {
+    content: '';
+    position: absolute;
+    right: -5px; top: 50%;
+    width: 10px; height: 10px;
+    background: var(--red);
+    border-radius: 50%;
+    transform: translateY(-50%);
+  }
+  .ls-time-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.8);
+  }
+  .ls-companion {
+    background: var(--red);
+    color: var(--white);
+    font-family: var(--srf-font);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 2px;
+    padding: 11px 18px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 16px rgba(227,31,43,0.4);
+    transition: transform 0.15s ease;
+  }
+  .ls-companion:active { transform: scale(0.97); }
+  .ls-companion svg { display: block; }
+
+  /* Icon-only control buttons (chat + companion) in landscape controls */
+  .ls-icon-btn {
+    position: relative;
+    width: 36px; height: 36px;
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 50%;
+    color: var(--white);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+    transition: background 0.15s, transform 0.15s;
+    flex-shrink: 0;
+  }
+  .ls-icon-btn:hover { background: rgba(0,0,0,0.65); }
+  .ls-icon-btn:active { transform: scale(0.94); }
+  .ls-icon-btn-primary {
+    background: var(--red);
+    border-color: var(--red);
+    box-shadow: 0 4px 14px rgba(227,31,43,0.35);
+  }
+  .ls-icon-btn-primary:hover { background: #f73647; }
+  .ls-icon-badge {
+    position: absolute;
+    top: -3px; right: -3px;
+    min-width: 16px;
+    height: 16px;
+    background: var(--red);
+    border: 2px solid rgba(0,0,0,0.85);
+    border-radius: 8px;
+    color: var(--white);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 4px;
+    line-height: 1;
+  }
+  .ls-icon-btn-primary .ls-icon-badge {
+    background: var(--white);
+    color: var(--red);
+    border-color: var(--red);
+  }
+  .ls-icon-btn.is-active {
+    background: var(--white);
+    color: #111;
+    border-color: var(--white);
+  }
+
+  /* Cast confirm sheet (Flow B trigger) */
+  .lstream-cast-sheet {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(8px);
+    z-index: 20;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .lstream-cast-sheet.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .cast-sheet-card {
+    background: #181818;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    width: 100%;
+    padding: 20px 22px;
+    border-radius: 12px 12px 0 0;
+    transform: translateY(110%);
+    transition: transform 0.35s cubic-bezier(0.65,0,0.35,1);
+  }
+  .lstream-cast-sheet.open .cast-sheet-card {
+    transform: translateY(0);
+  }
+  .cast-sheet-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--white);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 4px;
+  }
+  .cast-sheet-sub {
+    font-size: 11px;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.3px;
+    margin-bottom: 14px;
+    line-height: 1.4;
+  }
+  .cast-device-btn {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 4px;
+    padding: 12px 14px;
+    color: var(--white);
+    font-family: var(--srf-font);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    margin-bottom: 8px;
+    text-align: left;
+    transition: background 0.15s;
+  }
+  .cast-device-btn:hover { background: rgba(255,255,255,0.1); }
+  .cast-device-btn svg { color: var(--red); flex-shrink: 0; }
+  .cast-device-info { flex: 1; }
+  .cast-device-name { font-weight: 700; font-size: 13px; letter-spacing: 0.2px; }
+  .cast-device-status { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px; letter-spacing: 0.4px; }
+  .cast-device-arrow { font-size: 20px; color: rgba(255,255,255,0.35); }
+  .cast-device-action {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--red);
+  }
+  .cast-device-other { opacity: 0.55; cursor: not-allowed; }
+  .cast-device-other svg { color: rgba(255,255,255,0.4); }
+  .cast-cancel-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 4px;
+    padding: 11px;
+    color: rgba(255,255,255,0.7);
+    font-family: var(--srf-font);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+
+  /* Landscape companion bottom-sheet (Flow A) — slides up from the bottom */
+  .lstream-side-panel {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 78%;
+    max-height: min(305px, 78dvh);
+    background: linear-gradient(180deg, rgba(14,14,14,0.96), rgba(8,8,8,0.98));
+    backdrop-filter: blur(18px);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px 16px 0 0;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.65,0,0.35,1),
+                right 0.4s cubic-bezier(0.65,0,0.35,1);
+    z-index: 7;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 -10px 36px rgba(0,0,0,0.55);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .lstream.companion-open .lstream-side-panel {
+    transform: translateY(0);
+  }
+  .lstream.companion-open .lstream-controls #go-s3 {
+    background: var(--white);
+    color: #111;
+    border-color: var(--white);
+  }
+  .lstream.companion-open .lstream-video::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    transition: background 0.4s ease;
+    pointer-events: none;
+  }
+  /* Drag handle at top of bottom sheet */
+  .lsp-handle-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0 2px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .lsp-handle {
+    width: 40px;
+    height: 4px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 2px;
+  }
+
+  .lsp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .lsp-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: 0.4px;
+  }
+  .lsp-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .lsp-close {
+    width: 26px; height: 26px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+    color: var(--white);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+
+  .lsp-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 22px 22px;
+    display: grid;
+    grid-template-columns: 1.1fr 1fr 1.1fr;
+    gap: 22px;
+    align-items: stretch;
+    scrollbar-width: none;
+  }
+  .lsp-body::-webkit-scrollbar { display: none; }
+
+  .lsp-section { display: flex; flex-direction: column; min-width: 0; }
+  .lsp-section .section-head {
+    margin-bottom: 10px;
+  }
+
+  .lsp-reactions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .lsp-reactions .reaction-btn {
+    padding: 10px 6px;
+  }
+  .lsp-reactions .reaction-emoji { font-size: 22px; }
+  .lsp-reactions .reaction-label { font-size: 10px; margin-top: 4px; }
+  .lsp-reactions .reaction-count { display: none; }
+
+  /* Tipp card inside landscape bottom sheet — dual state (empty / placed) */
+  .lsp-tipp-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    padding: 14px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+  .lsp-tipp-card .lsp-tipp-placed { display: none; }
+  .lsp-tipp-card.is-placed .lsp-tipp-empty { display: none; }
+  .lsp-tipp-card.is-placed .lsp-tipp-placed { display: flex; }
+
+  /* Empty state */
+  .lsp-tipp-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    height: 100%;
+  }
+  .lsp-tipp-empty-icon {
+    font-size: 22px;
+    opacity: 0.65;
+    line-height: 1;
+  }
+  .lsp-tipp-empty-copy { flex: 1; }
+  .lsp-tipp-empty-head {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: 0.2px;
+    margin-bottom: 3px;
+  }
+  .lsp-tipp-empty-sub {
+    font-size: 10.5px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.3px;
+    line-height: 1.45;
+  }
+  .lsp-tipp-empty .tipp-confirm-btn {
+    width: 100%;
+    padding: 11px 14px;
+    font-size: 11px;
+  }
+
+  /* Placed state */
+  .lsp-tipp-placed {
+    flex-direction: column;
+    height: 100%;
+    gap: 0;
+  }
+  .lsp-tipp-placed-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .lsp-tipp-placed-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+  }
+  .lsp-tipp-placed-pts {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: var(--red);
+    letter-spacing: 0.3px;
+    background: rgba(227,31,43,0.12);
+    border: 1px solid rgba(227,31,43,0.3);
+    padding: 3px 7px;
+    border-radius: 999px;
+    line-height: 1;
+  }
+  .lsp-tipp-placed-score {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto 1fr;
+    align-items: center;
+    justify-items: center;
+    gap: 4px 8px;
+    padding: 10px 0 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 10px;
+  }
+  .lsp-tipp-team {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.8px;
+  }
+  .lsp-tipp-num {
+    font-size: 30px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -1.5px;
+    line-height: 1;
+  }
+  .lsp-tipp-sep {
+    font-size: 22px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.3);
+    line-height: 1;
+  }
+  .lsp-tipp-locked-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: center;
+    color: rgba(255,255,255,0.45);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 999px;
+  }
+  .lsp-tipp-locked-note svg { opacity: 0.8; }
+
+  .companion-btn-wrap {
+    position: relative;
+    z-index: 10;
+    padding: 20px 24px 30px;
+    display: flex;
+    justify-content: center;
+  }
+  .companion-btn {
+    background: var(--red);
+    color: var(--white);
+    font-family: var(--srf-font);
+    font-size: 13px;
+    font-weight: 700;
+    border: none;
+    border-radius: 2px;
+    padding: 16px 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 24px rgba(227,31,43,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+  .companion-btn:active { transform: scale(0.97); box-shadow: 0 2px 12px rgba(227,31,43,0.3); }
+  .btn-arrow { font-size: 18px; }
+
+  /* ─── SCREEN 3: COMPANION PANEL ─── */
+  #s3 { background: #000; }
+  #s3 .video-bg-dim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #0a0a0a 0%, #000 40%);
+  }
+
+  .panel-sheet {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 72%;
+    background: #1E1E1E;
+    border-radius: 24px 24px 0 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.65,0,0.35,1);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-bottom: none;
+  }
+  .panel-sheet.open { transform: translateY(0); }
+
+  .panel-handle-wrap {
+    padding: 12px 0 4px;
+    display: flex;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .panel-handle {
+    width: 36px; height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+  }
+
+  .panel-header {
+    padding: 10px 20px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .panel-title {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+  }
+  .panel-live-badge {
+    background: var(--red);
+    color: var(--white);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 3px 6px 2px;
+    border-radius: 2px;
+    line-height: 1;
+  }
+
+  .panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    scrollbar-width: none;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .panel-body::-webkit-scrollbar { display: none; }
+
+  /* Reactions */
+  .reactions-wrap { display: flex; gap: 10px; }
+  .reaction-btn {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 14px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    overflow: hidden;
+    font-family: var(--srf-font);
+    color: var(--white);
+  }
+  .reaction-btn:active { transform: scale(0.94); background: rgba(255,255,255,0.1); }
+  .reaction-emoji { font-size: 24px; }
+  .reaction-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.7); }
+  .reaction-count { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.55); }
+
+  .ripple-badge {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--red);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 20px;
+    padding: 2px 6px;
+    animation: ripple-in 0.6s ease forwards;
+    pointer-events: none;
+  }
+  @keyframes ripple-in {
+    0% { opacity: 0; transform: scale(0.5) translateY(4px); }
+    30% { opacity: 1; transform: scale(1) translateY(0); }
+    70% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-8px); }
+  }
+
+  /* Section header */
+  .section-head {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  /* Tipp */
+  .tipp-block {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .tipp-score-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .stepper-btn {
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--white);
+    cursor: pointer;
+    transition: background 0.15s;
+    font-family: var(--srf-font);
+    line-height: 1;
+  }
+  .stepper-btn:active { background: rgba(255,255,255,0.16); }
+  .stepper-btn:disabled { opacity: 0.35; pointer-events: none; }
+  .stepper-val {
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--white);
+    min-width: 28px;
+    text-align: center;
+  }
+  .tipp-sep { font-size: 24px; font-weight: 900; color: rgba(255,255,255,0.2); }
+  .tipp-teams {
+    display: flex;
+    justify-content: center;
+    gap: 60px;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 14px;
+    letter-spacing: 0.5px;
+  }
+  .tipp-confirm-btn {
+    width: 100%;
+    background: var(--red);
+    color: var(--white);
+    font-family: var(--srf-font);
+    font-size: 13px;
+    font-weight: 700;
+    border: none;
+    border-radius: 2px;
+    padding: 14px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  .tipp-confirm-btn:active { transform: scale(0.98); opacity: 0.9; }
+
+  /* Energie */
+  .energie-block {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 16px;
+    cursor: pointer;
+  }
+  .energie-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .energie-label { font-size: 13px; font-weight: 600; color: var(--white); }
+  .energie-val { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.85); }
+  .energie-track {
+    height: 8px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .energie-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #e31f2b, #FF4D6B);
+    border-radius: 4px;
+    transition: width 0.5s ease-out;
+    animation: energie-pulse 2s ease-in-out infinite;
+  }
+  @keyframes energie-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+  .energie-hint { font-size: 11px; color: rgba(255,255,255,0.25); }
+
+  /* ─── FLOATING REACTION EMOJIS (companion-only) ─── */
+  .float-emoji-layer {
+    position: absolute;
+    left: 0;
+    bottom: 78%;
+    width: 230px;
+    height: 96px;
+    overflow: visible;
+    pointer-events: none;
+    z-index: 6;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .lstream.companion-open .float-emoji-layer { opacity: 1; }
+  .float-emoji {
+    position: absolute;
+    bottom: 0;
+    font-size: 22px;
+    opacity: 0;
+    line-height: 1;
+    pointer-events: none;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.65));
+    animation: float-emoji-rise 3.2s ease-out forwards;
+    will-change: transform, opacity;
+  }
+  .float-emoji-me {
+    font-size: 26px;
+    text-shadow: 0 0 18px rgba(227,31,43,0.6);
+  }
+  @keyframes float-emoji-rise {
+    0%   { opacity: 0; transform: translate(0, 8px) scale(0.6); }
+    14%  { opacity: 1; transform: translate(0, 0) scale(1); }
+    65%  { opacity: 1; }
+    100% { opacity: 0; transform: translate(var(--drift, 12px), -110px) scale(0.9); }
+  }
+
+  /* ─── CHAT OVERLAY (Twitch-style) ─── */
+  .lstream-chat-panel {
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    width: 320px;
+    background: rgba(10,10,10,0.96);
+    backdrop-filter: blur(18px);
+    border-left: 1px solid rgba(255,255,255,0.08);
+    transform: translateX(100%);
+    transition: transform 0.4s cubic-bezier(0.65,0,0.35,1);
+    z-index: 9;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -8px 0 32px rgba(0,0,0,0.5);
+  }
+  .lstream.chat-open .lstream-chat-panel {
+    transform: translateX(0);
+  }
+  .lstream.chat-open .lstream-video::after {
+    content: '';
+    position: absolute;
+    inset: 0 320px 0 0;
+    background: rgba(0,0,0,0.35);
+    pointer-events: none;
+  }
+  .lstream.chat-open .lstream-controls,
+  .lstream.chat-open .lstream-top {
+    right: 320px;
+    transition: right 0.4s cubic-bezier(0.65,0,0.35,1);
+  }
+  .lstream.chat-open .lstream-side-panel {
+    right: 320px;
+  }
+
+  .chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+  }
+  .chat-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: 0.4px;
+  }
+  .chat-count {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.4px;
+  }
+  .chat-live-dot {
+    width: 7px; height: 7px;
+    background: var(--red);
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(227,31,43,0.8);
+    animation: chat-dot-pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes chat-dot-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .chat-close {
+    width: 26px; height: 26px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+    color: var(--white);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 14px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    scrollbar-width: none;
+  }
+  .chat-messages::-webkit-scrollbar { display: none; }
+
+  .chat-msg {
+    font-size: 12.5px;
+    line-height: 1.42;
+    color: rgba(255,255,255,0.92);
+    padding: 1px 2px;
+    word-wrap: break-word;
+    animation: chat-fade-in 0.25s ease;
+  }
+  @keyframes chat-fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .chat-msg .chat-user {
+    font-weight: 800;
+    margin-right: 6px;
+  }
+  .chat-msg.chat-msg-me .chat-user { color: var(--red); }
+  .chat-msg-system {
+    font-size: 10.5px;
+    color: rgba(255,255,255,0.4);
+    font-style: italic;
+    text-align: center;
+    padding: 4px 0;
+    letter-spacing: 0.3px;
+  }
+
+  .chat-reactions {
+    display: flex;
+    gap: 6px;
+    padding: 8px 12px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    flex-shrink: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .chat-reactions::-webkit-scrollbar { display: none; }
+  .chat-reaction-pill {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+    line-height: 1;
+    transition: transform 0.15s, background 0.15s;
+  }
+  .chat-reaction-pill:hover { background: rgba(255,255,255,0.12); }
+  .chat-reaction-pill:active { transform: scale(0.9); }
+
+  .chat-input-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px 14px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    flex-shrink: 0;
+  }
+  .chat-input {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 999px;
+    padding: 9px 14px;
+    color: var(--white);
+    font-family: var(--srf-font);
+    font-size: 12.5px;
+    outline: none;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .chat-input::placeholder { color: rgba(255,255,255,0.35); }
+  .chat-input:focus {
+    border-color: rgba(227,31,43,0.6);
+    background: rgba(255,255,255,0.08);
+  }
+  .chat-send {
+    width: 34px; height: 34px;
+    background: var(--red);
+    border: none;
+    border-radius: 50%;
+    color: var(--white);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.15s, opacity 0.15s;
+    box-shadow: 0 4px 14px rgba(227,31,43,0.35);
+  }
+  .chat-send:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+  .chat-send:not(:disabled):active { transform: scale(0.92); }
+  .chat-send svg { display: block; }
+
+  /* Portrait (cast-mode) variant — chat lives inside the panel-sheet */
+  .panel-sheet-chat {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+  .panel-sheet-chat .chat-messages {
+    padding: 6px 18px 8px;
+  }
+  .panel-sheet-chat .chat-reactions {
+    padding: 8px 18px;
+  }
+  .panel-sheet-chat .chat-input-bar {
+    padding: 10px 18px 4px;
+  }
+
+  /* Sheet tabs (cast flow) */
+  .sheet-tabs {
+    display: flex;
+    gap: 24px;
+    padding: 0 18px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .sheet-tab {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.55);
+    font-family: var(--srf-font);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 6px 0 8px;
+    cursor: pointer;
+    position: relative;
+  }
+  .sheet-tab.active { color: var(--white); }
+  .sheet-tab.active::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 2px;
+    background: var(--red);
+    border-radius: 2px;
+  }
+  .sheet-tab-badge {
+    background: var(--red);
+    color: var(--white);
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 5px;
+    border-radius: 8px;
+    margin-left: 5px;
+    letter-spacing: 0;
+  }
+
+  /* ─── SCREEN: LEADERBOARD ─── */
+  #s-leaderboard { background: var(--dark); }
+  .lb-header {
+    padding: 4px 22px 14px;
+    flex-shrink: 0;
+  }
+  .lb-title {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+  }
+  .lb-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.2px;
+  }
+  .lb-toggle {
+    display: flex;
+    gap: 6px;
+    padding: 0 22px 12px;
+    flex-shrink: 0;
+  }
+  .lb-tab {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 999px;
+    color: rgba(255,255,255,0.6);
+    font-family: var(--srf-font);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 7px 14px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .lb-tab.active {
+    background: var(--white);
+    color: #111;
+    border-color: var(--white);
+  }
+  .lb-me-card {
+    margin: 0 22px 16px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, rgba(227,31,43,0.18), rgba(227,31,43,0.04));
+    border: 1px solid rgba(227,31,43,0.4);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+  .lb-me-rank {
+    font-size: 26px;
+    font-weight: 900;
+    color: var(--red);
+    letter-spacing: -1px;
+    min-width: 36px;
+  }
+  .lb-me-info { flex: 1; }
+  .lb-me-name {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: 0.2px;
+    margin-bottom: 3px;
+  }
+  .lb-me-meta {
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 0.2px;
+  }
+  .lb-me-points {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -0.5px;
+  }
+  .lb-me-points span {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.4px;
+    margin-left: 3px;
+  }
+  .lb-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 22px 12px;
+    scrollbar-width: none;
+  }
+  .lb-list::-webkit-scrollbar { display: none; }
+  .lb-row {
+    display: grid;
+    grid-template-columns: 28px 32px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-row.is-me {
+    background: rgba(227,31,43,0.08);
+    margin: 0 -10px;
+    padding: 10px 10px;
+    border-radius: 8px;
+    border-bottom: none;
+  }
+  .lb-rank {
+    font-size: 14px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.45);
+    text-align: center;
+  }
+  .lb-row.is-me .lb-rank { color: var(--red); }
+  .lb-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    font-weight: 800;
+    color: #1a1a1a;
+    letter-spacing: 0;
+  }
+  .lb-info { min-width: 0; }
+  .lb-name {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: 0.2px;
+  }
+  .lb-meta {
+    font-size: 10.5px;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.2px;
+    margin-top: 2px;
+  }
+  .lb-points {
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: 0;
+  }
+
+  /* ─── SCREEN 4: FAN ERUPTION ─── */
+  #s4 {
+    background: #000;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  #eruption-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .eruption-content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 32px;
+  }
+
+  .eruption-logo {
+    font-size: 14px;
+    font-weight: 900;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 1px;
+    margin-bottom: 40px;
+  }
+  .eruption-logo span { color: var(--red); }
+
+  .eruption-word {
+    font-size: 88px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -4px;
+    line-height: 1;
+    margin-bottom: 16px;
+    animation: eruption-pulse 0.8s ease-in-out infinite alternate;
+  }
+  @keyframes eruption-pulse {
+    from { transform: scale(1); text-shadow: 0 0 40px rgba(227,31,43,0.6); }
+    to { transform: scale(1.04); text-shadow: 0 0 80px rgba(227,31,43,1), 0 0 120px rgba(227,31,43,0.4); }
+  }
+
+  .eruption-sub {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 32px;
+    line-height: 1.5;
+  }
+
+  .eruption-counter {
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -2px;
+    margin-bottom: 8px;
+  }
+  .eruption-counter-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 48px;
+  }
+
+  /* Eruption in landscape — compact layout */
+  .phone.landscape .eruption-logo { margin-bottom: 14px; font-size: 12px; }
+  .phone.landscape .eruption-word { font-size: 64px; margin-bottom: 8px; }
+  .phone.landscape .eruption-sub { font-size: 12px; margin-bottom: 14px; }
+  .phone.landscape .eruption-counter { font-size: 38px; margin-bottom: 4px; }
+  .phone.landscape .eruption-counter-label { font-size: 10px; margin-bottom: 20px; }
+
+  /* In-game eruption overlay (landscape Flow A) — sits on top of the video */
+  .lstream-eruption-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    background: radial-gradient(ellipse at center, rgba(227,31,43,0.35) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.7) 100%);
+  }
+  .lstream-eruption-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+  #lstream-eruption-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .lstream-eruption-content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 24px;
+  }
+  .lstream-eruption-content .eruption-logo { font-size: 11px; margin-bottom: 10px; }
+  .lstream-eruption-content .eruption-word {
+    font-size: 84px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -3px;
+    line-height: 1;
+    margin-bottom: 10px;
+    animation: eruption-pulse 0.8s ease-in-out infinite alternate;
+    text-shadow: 0 0 40px rgba(227,31,43,0.8);
+  }
+  .lstream-eruption-content .eruption-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.85);
+    margin-bottom: 18px;
+    line-height: 1.5;
+  }
+  .lstream-eruption-content .eruption-counter {
+    font-size: 36px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -1.5px;
+    margin-bottom: 2px;
+  }
+  .lstream-eruption-content .eruption-counter-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .zuruck-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--white);
+    font-family: var(--srf-font);
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 4px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 12px 24px;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: background 0.2s;
+  }
+  .zuruck-btn:active { background: rgba(255,255,255,0.18); }
+
+  /* ─── SCREEN 5: TIPP CONFIRMED ─── */
+  #s5 {
+    background: var(--dark);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tipp-confirmed-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 32px;
+    text-align: center;
+  }
+
+  .check-circle {
+    width: 80px; height: 80px;
+    background: rgba(0,200,83,0.12);
+    border: 2px solid var(--green);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+    margin-bottom: 24px;
+    animation: pop-in 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  }
+  @keyframes pop-in {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .confirmed-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--green);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .tipp-result {
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -2px;
+    margin-bottom: 8px;
+  }
+
+  .tipp-desc { font-size: 13px; color: rgba(255,255,255,0.4); margin-bottom: 32px; }
+
+  .points-badge {
+    background: linear-gradient(135deg, rgba(227,31,43,0.2), rgba(227,31,43,0.08));
+    border: 1px solid rgba(227,31,43,0.3);
+    border-radius: 16px;
+    padding: 16px 28px;
+    margin-bottom: 24px;
+  }
+  .points-val {
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--red);
+    letter-spacing: -1px;
+  }
+  .points-label { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+  .leaderboard-teaser {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 14px 20px;
+    width: 100%;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .rank-badge {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 900; color: #000;
+    flex-shrink: 0;
+  }
+  .rank-text { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.7); line-height: 1.4; }
+  .rank-text strong { color: var(--white); display: block; }
+
+  /* ─── SCREEN: TIPP EDIT (input + friends ranking) ─── */
+  #s-edit {
+    background: var(--dark);
+  }
+  .edit-header {
+    padding: 18px 22px 6px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .edit-back {
+    width: 32px; height: 32px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--white);
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .edit-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: 0.3px;
+  }
+  .edit-subtitle {
+    padding: 0 22px;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .edit-tipp-card {
+    margin: 0 22px 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    padding: 18px 16px 20px;
+  }
+  .edit-teams {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .edit-teams .sep {
+    color: rgba(255,255,255,0.3);
+    font-weight: 600;
+  }
+  .edit-score-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 10px;
+  }
+  .edit-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+  }
+  .edit-stepper-btn {
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+    color: var(--white);
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .edit-stepper-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .edit-stepper-val {
+    font-size: 38px;
+    font-weight: 900;
+    color: var(--white);
+    min-width: 38px;
+    text-align: center;
+    letter-spacing: -1px;
+  }
+  .edit-sep {
+    font-size: 28px;
+    font-weight: 900;
+    color: rgba(255,255,255,0.4);
+  }
+  .edit-points {
+    margin: 0 22px 20px;
+    background: linear-gradient(135deg, rgba(227,31,43,0.18), rgba(227,31,43,0.06));
+    border: 1px solid rgba(227,31,43,0.3);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .edit-points-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+  }
+  .edit-points-val {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--red);
+    letter-spacing: -0.5px;
+  }
+  .friends-section {
+    padding: 0 22px;
+    margin-bottom: 16px;
+  }
+  .friends-head {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 10px;
+  }
+  .friends-list {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .friend-row {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .friend-row:last-child { border-bottom: none; }
+  .friend-row.is-me {
+    background: rgba(227,31,43,0.08);
+  }
+  .friend-rank {
+    font-size: 12px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.4);
+    text-align: center;
+  }
+  .friend-row.is-me .friend-rank { color: var(--red); }
+  .friend-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .friend-name-sub {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.3px;
+  }
+  .friend-points {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: 0.2px;
+  }
+  .friend-points span { color: rgba(255,255,255,0.4); font-weight: 600; font-size: 10px; margin-left: 3px; }
+
+  .edit-footer {
+    padding: 12px 22px 22px;
+    background: var(--dark);
+    border-top: 1px solid rgba(255,255,255,0.05);
+    position: sticky;
+    bottom: 0;
+  }
+  .edit-confirm-btn {
+    width: 100%;
+    background: var(--red);
+    color: var(--white);
+    font-family: var(--srf-font);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 4px;
+    padding: 15px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(227,31,43,0.35);
+    transition: transform 0.15s;
+  }
+  .edit-confirm-btn:active { transform: scale(0.98); }
+
+  /* Lock-in confirmation modal */
+  .lock-modal {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 30;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .lock-modal.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .lock-card {
+    width: calc(100% - 44px);
+    max-width: 320px;
+    background: #181818;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 22px 22px 18px;
+    text-align: center;
+    transform: translateY(12px) scale(0.97);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .lock-modal.open .lock-card { transform: translateY(0) scale(1); }
+  .lock-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--white);
+    margin-bottom: 8px;
+    letter-spacing: 0.2px;
+  }
+  .lock-sub {
+    font-size: 12.5px;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.5;
+    margin-bottom: 18px;
+  }
+  .lock-sub strong { color: var(--white); }
+  .lock-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .lock-cancel {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.85);
+    font-family: var(--srf-font);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    border-radius: 4px;
+    padding: 12px;
+    cursor: pointer;
+  }
+  .lock-confirm {
+    background: var(--red);
+    border: none;
+    color: var(--white);
+    font-family: var(--srf-font);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    border-radius: 4px;
+    padding: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(227,31,43,0.4);
+  }
+
+  .back-companion-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--white);
+    font-family: var(--srf-font);
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 4px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 14px 28px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .back-companion-btn:active { background: rgba(255,255,255,0.14); }
+
+  /* S3 mini-score and cast banner */
+  .s3-mini-score {
+    position: absolute;
+    top: 12px; left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 5;
+  }
+  #s3.casting .s3-mini-score { display: none; }
+
+  .cast-active-banner {
+    display: none;
+    position: absolute;
+    top: 56px;
+    left: 64px; right: 16px;
+    background: rgba(227,31,43,0.22);
+    border: 1px solid rgba(227,31,43,0.5);
+    border-radius: 6px;
+    padding: 10px 12px;
+    align-items: center;
+    gap: 12px;
+    z-index: 5;
+    backdrop-filter: blur(8px);
+  }
+  #s3.casting .cast-active-banner { display: flex; }
+  .cast-active-icon {
+    position: relative;
+    color: var(--white);
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    background: rgba(227,31,43,0.45);
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .cast-active-pulse {
+    position: absolute;
+    top: -2px; right: -2px;
+    width: 8px; height: 8px;
+    background: var(--red);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px #050505;
+    animation: cast-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes cast-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.75); }
+  }
+  .cast-active-info { flex: 1; min-width: 0; }
+  .cast-active-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--white);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 2px;
+  }
+  .cast-active-device {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: 0.2px;
+  }
+  .cast-active-target {
+    font-size: 10px;
+    color: rgba(255,255,255,0.65);
+    letter-spacing: 0.2px;
+    margin-top: 1px;
+  }
+  .cast-active-score {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 12.5px;
+    color: rgba(255,255,255,0.92);
+    letter-spacing: 0.2px;
+    margin-top: 2px;
+  }
+  .cast-active-score strong { color: var(--white); font-weight: 900; margin: 0 4px; }
+  .cast-active-min {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--red);
+    letter-spacing: 0.6px;
+  }
+
+  /* Compact tipp pill in cast portrait sheet */
+  .s3-tipp-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    color: var(--white);
+    font-family: var(--srf-font);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .s3-tipp-pill:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.14); }
+  .s3-tipp-pill:active { transform: scale(0.99); }
+  .s3-tipp-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+  }
+  .s3-tipp-val {
+    font-size: 17px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -0.5px;
+    margin-left: auto;
+  }
+  .s3-tipp-val-empty {
+    color: rgba(255,255,255,0.4);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.3px;
+  }
+  .s3-tipp-cta {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--red);
+    flex-shrink: 0;
+  }
+  .s3-tipp-edit {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+    flex-shrink: 0;
+  }
+  .s3-tipp-locked {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    background: rgba(255,255,255,0.05);
+    padding: 4px 8px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+  .s3-tipp-locked svg { opacity: 0.8; }
+  .s3-tipp-pill.is-locked {
+    cursor: default;
+    pointer-events: none;
+  }
+  .s3-tipp-pill.is-locked:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+
+  /* Secondary state for landscape bottom-sheet tipp button after tipp placed */
+  .tipp-confirm-btn-secondary {
+    background: rgba(255,255,255,0.08) !important;
+    color: var(--white) !important;
+    box-shadow: none !important;
+  }
+  .cast-stop-btn {
+    width: 30px; height: 30px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50%;
+    color: var(--white);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    padding: 0;
+  }
+
+  /* Back btn in screen 3 */
+  .s3-back {
+    position: absolute;
+    top: 56px; left: 16px;
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    color: var(--white);
+    z-index: 20;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  :focus { outline: none; }
+  :focus-visible { outline: 2px solid var(--red); outline-offset: 2px; border-radius: 4px; }
+  button:focus-visible, [role="button"]:focus-visible { outline-offset: 3px; }
+
+  /* Desktop scale-down media queries removed for mobile fork — real phones use 100dvw/100dvh */
+
+  /* s5 tipp-confirmed entry animation */
+  .tipp-confirmed-wrap > * { opacity: 0; transform: translateY(8px); }
+  #s5.active .tipp-confirmed-wrap > * {
+    animation: tipp-entry 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+  }
+  #s5.active .tipp-confirmed-wrap > *:nth-child(1) { animation-delay: 0.05s; }
+  #s5.active .tipp-confirmed-wrap > *:nth-child(2) { animation-delay: 0.15s; }
+  #s5.active .tipp-confirmed-wrap > *:nth-child(3) { animation-delay: 0.25s; }
+  #s5.active .tipp-confirmed-wrap > *:nth-child(4) { animation-delay: 0.35s; }
+  #s5.active .tipp-confirmed-wrap > *:nth-child(5) { animation-delay: 0.45s; }
+  #s5.active .tipp-confirmed-wrap > *:nth-child(6) { animation-delay: 0.55s; }
+  @keyframes tipp-entry {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    .eruption-word { animation: none; text-shadow: 0 0 60px rgba(227,31,43,0.8); }
+    .cast-active-pulse { animation: none; opacity: 1; }
+    .tipp-confirmed-wrap > * { opacity: 1; transform: none; }
+  }
+
+  /* ─── Touch-friendly overrides (mobile fork) ─── */
+  button, [role="button"], .nav-item, .reaction, .energie-block, .s3-tipp-pill,
+  .chat-reaction-pill, .ls-icon-btn, .ls-icon-btn-primary, .ls-play, .ls-cast,
+  .cast-device-btn, .match-card-link, .match-card-featured, [data-go], [data-nav], [onclick] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* On touch devices iOS Safari sticks :hover after the first tap. Mirror each :hover
+     to :active so tap feedback still fires, and revert :hover so it doesn't persist. */
+  @media (hover: none) {
+    .ls-cast:hover,
+    .ls-play:hover,
+    .ls-icon-btn:hover,
+    .ls-icon-btn-primary:hover,
+    .cast-device-btn:hover,
+    .chat-reaction-pill:hover,
+    .s3-tipp-pill:hover,
+    .s3-tipp-pill.is-locked:hover {
+      background: revert;
+      color: revert;
+      border-color: revert;
+    }
+  }
+  .ls-cast:active { background: rgba(0,0,0,0.65); }
+  .ls-play:active { color: var(--white); }
+  .ls-icon-btn:active { background: rgba(0,0,0,0.65); }
+  .ls-icon-btn-primary:active { background: #f73647; }
+  .cast-device-btn:active { background: rgba(255,255,255,0.1); }
+  .chat-reaction-pill:active { background: rgba(255,255,255,0.12); }
+  .s3-tipp-pill:active { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.14); }
+</style>
+</head>
+<body>
+
+<div id="rotate-hint" class="rotate-hint" aria-hidden="true">
+  <div class="rotate-hint-icon">📱</div>
+  <div class="rotate-hint-title">Drehe dein Telefon</div>
+  <div class="rotate-hint-sub">Diese Ansicht funktioniert im Querformat — bitte das Telefon ins Landscape drehen.</div>
+</div>
+
+<div class="phone">
+
+  <!-- ═══════════════════════════════════════════
+       SCREEN 1: HOMESCREEN
+  ═══════════════════════════════════════════ -->
+  <div id="s1" class="screen active">
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">
+        <span>●●●</span>
+        <span>WiFi</span>
+        <span>🔋</span>
+      </div>
+    </div>
+
+    <div class="s1-header">
+      <div class="srf-logo"><span class="srf-mark">SRF</span>Sport</div>
+      <div class="avatar">SG</div>
+    </div>
+
+    <nav class="tab-nav">
+      <a href="#" class="active">Home</a>
+      <a href="#">Live</a>
+      <a href="#">Resultate</a>
+      <a href="#">Mehr</a>
+    </nav>
+
+    <div class="feed">
+      <div class="section-label" style="margin-bottom:10px;">Jetzt Live</div>
+
+      <!-- Featured -->
+      <div class="match-card-featured" id="go-s2" role="button" tabindex="0">
+        <div class="live-badge">LIVE JETZT</div>
+        <div class="match-teams">
+          <div class="team">
+            <span class="team-flag">🇨🇭</span>
+            <div class="team-name">Schweiz</div>
+          </div>
+          <div class="score-block">
+            <div class="score-main">1:1</div>
+            <div class="score-time">67'</div>
+          </div>
+          <div class="team">
+            <span class="team-flag">🇫🇷</span>
+            <div class="team-name">Frankreich</div>
+          </div>
+        </div>
+        <div class="match-meta">UEFA Nations League · Gruppenphase</div>
+      </div>
+
+      <div class="section-label" style="margin-top:4px;">Bald</div>
+
+      <div class="match-card-small match-card-link" role="button" tabindex="0" data-go="s2">
+        <div>
+          <div class="teams-small">🏴󠁧󠁢󠁥󠁮󠁧󠁿 England — 🇩🇪 Deutschland</div>
+          <div class="meta-small">UEFA Nations League · Gruppenphase</div>
+        </div>
+        <div class="time-badge">20:45</div>
+      </div>
+
+      <div class="match-card-small match-card-link" role="button" tabindex="0" data-go="s2">
+        <div>
+          <div class="teams-small">🇵🇹 Portugal — 🇪🇸 Spanien</div>
+          <div class="meta-small">UEFA Nations League · Gruppenphase</div>
+        </div>
+        <div class="time-badge">20:45</div>
+      </div>
+
+      <div style="height:16px;"></div>
+    </div>
+
+    <div class="tap-hint" id="tap-hint" aria-hidden="true">Tippe das Live-Spiel an, um zu starten</div>
+
+    <nav class="bottom-nav">
+      <div class="nav-item active" role="button" tabindex="0" aria-label="Home" data-nav="s1">
+        <span class="nav-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z"/></svg>
+        </span>
+        <span class="nav-label">Home</span>
+      </div>
+      <div class="nav-item" role="button" tabindex="0" aria-label="Live" data-nav="s2">
+        <span class="nav-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="1"/><path d="M8 21h8M12 19v2"/></svg>
+        </span>
+        <span class="nav-label">Live</span>
+      </div>
+      <div class="nav-item" role="button" tabindex="0" aria-label="Resultate">
+        <span class="nav-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>
+        </span>
+        <span class="nav-label">Resultate</span>
+      </div>
+      <div class="nav-item" role="button" tabindex="0" aria-label="Rangliste" data-nav="s-leaderboard">
+        <span class="nav-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v3a5 5 0 0 1-10 0V4z"/><path d="M17 4h3v2a3 3 0 0 1-3 3M7 4H4v2a3 3 0 0 0 3 3"/></svg>
+        </span>
+        <span class="nav-label">Rangliste</span>
+      </div>
+      <div class="nav-item" role="button" tabindex="0" aria-label="Mehr">
+        <span class="nav-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </span>
+        <span class="nav-label">Mehr</span>
+      </div>
+    </nav>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SCREEN: LEADERBOARD
+  ═══════════════════════════════════════════ -->
+  <div id="s-leaderboard" class="screen">
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+    </div>
+    <div class="lb-header">
+      <div class="lb-title">Rangliste</div>
+      <div class="lb-sub">Deine Freunde · Saison 2025/26</div>
+    </div>
+
+    <div class="lb-toggle">
+      <button class="lb-tab active" data-lb="freunde">Freunde</button>
+      <button class="lb-tab" data-lb="schweiz">Schweiz</button>
+      <button class="lb-tab" data-lb="welt">Welt</button>
+    </div>
+
+    <div class="lb-me-card">
+      <div class="lb-me-rank">#3</div>
+      <div class="lb-me-info">
+        <div class="lb-me-name">Du</div>
+        <div class="lb-me-meta">10 Tipps · 4 Volltreffer · Trend ↗ +2</div>
+      </div>
+      <div class="lb-me-points">290<span> Pkt</span></div>
+    </div>
+
+    <div class="lb-list">
+      <div class="lb-row">
+        <div class="lb-rank">1</div>
+        <div class="lb-avatar" style="background:linear-gradient(135deg,#FFD580,#FFB060);">L</div>
+        <div class="lb-info">
+          <div class="lb-name">Lena Müller</div>
+          <div class="lb-meta">12 Tipps · 6 Volltreffer</div>
+        </div>
+        <div class="lb-points">580</div>
+      </div>
+      <div class="lb-row">
+        <div class="lb-rank">2</div>
+        <div class="lb-avatar" style="background:linear-gradient(135deg,#9ECBFF,#7FA8E0);">T</div>
+        <div class="lb-info">
+          <div class="lb-name">Tim Brunner</div>
+          <div class="lb-meta">11 Tipps · 5 Volltreffer</div>
+        </div>
+        <div class="lb-points">435</div>
+      </div>
+      <div class="lb-row is-me">
+        <div class="lb-rank">3</div>
+        <div class="lb-avatar" style="background:var(--red);">D</div>
+        <div class="lb-info">
+          <div class="lb-name">Du</div>
+          <div class="lb-meta">10 Tipps · 4 Volltreffer</div>
+        </div>
+        <div class="lb-points">290</div>
+      </div>
+      <div class="lb-row">
+        <div class="lb-rank">4</div>
+        <div class="lb-avatar" style="background:linear-gradient(135deg,#D5A3FF,#A87CD8);">M</div>
+        <div class="lb-info">
+          <div class="lb-name">Mira Keller</div>
+          <div class="lb-meta">10 Tipps · 3 Volltreffer</div>
+        </div>
+        <div class="lb-points">240</div>
+      </div>
+      <div class="lb-row">
+        <div class="lb-rank">5</div>
+        <div class="lb-avatar" style="background:linear-gradient(135deg,#9EE6C0,#6FB893);">J</div>
+        <div class="lb-info">
+          <div class="lb-name">Jonas Aebi</div>
+          <div class="lb-meta">9 Tipps · 3 Volltreffer</div>
+        </div>
+        <div class="lb-points">180</div>
+      </div>
+      <div class="lb-row">
+        <div class="lb-rank">6</div>
+        <div class="lb-avatar" style="background:linear-gradient(135deg,#FF8C9E,#D45F73);">S</div>
+        <div class="lb-info">
+          <div class="lb-name">Sara Bättig</div>
+          <div class="lb-meta">8 Tipps · 2 Volltreffer</div>
+        </div>
+        <div class="lb-points">155</div>
+      </div>
+      <div class="lb-row">
+        <div class="lb-rank">7</div>
+        <div class="lb-avatar" style="background:linear-gradient(135deg,#FFE17C,#D9B94E);">P</div>
+        <div class="lb-info">
+          <div class="lb-name">Patrick Hess</div>
+          <div class="lb-meta">7 Tipps · 2 Volltreffer</div>
+        </div>
+        <div class="lb-points">130</div>
+      </div>
+      <div class="lb-row">
+        <div class="lb-rank">8</div>
+        <div class="lb-avatar" style="background:linear-gradient(135deg,#FFB28B,#E08763);">N</div>
+        <div class="lb-info">
+          <div class="lb-name">Nico Ledermann</div>
+          <div class="lb-meta">7 Tipps · 1 Volltreffer</div>
+        </div>
+        <div class="lb-points">95</div>
+      </div>
+    </div>
+
+    <nav class="bottom-nav">
+      <div class="nav-item" role="button" tabindex="0" aria-label="Home" data-nav="s1">
+        <span class="nav-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z"/></svg>
+        </span>
+        <span class="nav-label">Home</span>
+      </div>
+      <div class="nav-item" role="button" tabindex="0" aria-label="Live" data-nav="s2">
+        <span class="nav-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="1"/><path d="M8 21h8M12 19v2"/></svg>
+        </span>
+        <span class="nav-label">Live</span>
+      </div>
+      <div class="nav-item" role="button" tabindex="0" aria-label="Resultate">
+        <span class="nav-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>
+        </span>
+        <span class="nav-label">Resultate</span>
+      </div>
+      <div class="nav-item active" role="button" tabindex="0" aria-label="Rangliste" data-nav="s-leaderboard">
+        <span class="nav-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v3a5 5 0 0 1-10 0V4z"/><path d="M17 4h3v2a3 3 0 0 1-3 3M7 4H4v2a3 3 0 0 0 3 3"/></svg>
+        </span>
+        <span class="nav-label">Rangliste</span>
+      </div>
+      <div class="nav-item" role="button" tabindex="0" aria-label="Mehr">
+        <span class="nav-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </span>
+        <span class="nav-label">Mehr</span>
+      </div>
+    </nav>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SCREEN 2: LIVESTREAM
+  ═══════════════════════════════════════════ -->
+  <div id="s2" class="screen">
+    <div class="lstream">
+      <div class="lstream-video"></div>
+
+      <div class="lstream-top">
+        <button class="lstream-back" id="s2-back" aria-label="Zurück">‹</button>
+        <div class="lstream-scoreboard">
+          <span class="ls-team"><span class="ls-flag">🇨🇭</span>SUI</span>
+          <span class="ls-score">1 — 1</span>
+          <span class="ls-team">FRA<span class="ls-flag">🇫🇷</span></span>
+          <span class="ls-time">67'</span>
+          <span class="ls-live-pill">Live</span>
+        </div>
+        <div class="lstream-top-right">
+          <button class="ls-cast" id="ls-cast" aria-label="Auf TV streamen">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20a2 2 0 0 1 2-2"/><path d="M2 16a6 6 0 0 1 6 6"/><path d="M2 12a10 10 0 0 1 10 10"/><rect x="2" y="6" width="20" height="12" rx="2"/></svg>
+            <span>Auf TV</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="lstream-controls">
+        <button class="ls-play" aria-label="Pause">❙❙</button>
+        <div class="ls-progress">
+          <div class="ls-progress-track"><div class="ls-progress-fill"></div></div>
+          <div class="ls-time-label">67:21 / 90:00 · LIVE</div>
+        </div>
+        <button class="ls-icon-btn" id="open-chat" aria-label="Chat öffnen">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          <span class="ls-icon-badge" id="chat-unread-badge" aria-hidden="true">3</span>
+        </button>
+        <button class="ls-icon-btn ls-icon-btn-primary" id="go-s3" aria-label="Companion öffnen">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        </button>
+      </div>
+
+      <!-- Cast confirm sheet (Flow B trigger) -->
+      <div class="lstream-cast-sheet" id="cast-sheet">
+        <div class="cast-sheet-card">
+          <div class="cast-sheet-title">Auf TV streamen</div>
+          <div class="cast-sheet-sub">Wähle ein Gerät zum Streamen. Das Match läuft auf dem TV, während du hier mitfieberst und tippst.</div>
+          <button class="cast-device-btn" id="cast-confirm">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="1"/><path d="M8 21h8M12 17v4"/></svg>
+            <div class="cast-device-info">
+              <div class="cast-device-name">Wohnzimmer Apple TV</div>
+              <div class="cast-device-status">Verfügbar · 4K HDR</div>
+            </div>
+            <span class="cast-device-action">Streamen</span>
+          </button>
+          <button class="cast-device-btn cast-device-other" disabled>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="1"/><path d="M8 21h8M12 17v4"/></svg>
+            <div class="cast-device-info">
+              <div class="cast-device-name">Schlafzimmer Samsung TV</div>
+              <div class="cast-device-status">Ausgeschaltet</div>
+            </div>
+            <span class="cast-device-action" style="color:rgba(255,255,255,0.35);">—</span>
+          </button>
+          <button class="cast-cancel-btn" id="cast-cancel">Abbrechen</button>
+        </div>
+      </div>
+
+      <!-- Landscape bottom-sheet (Flow A: phone-only watching) -->
+      <aside class="lstream-side-panel" id="lstream-side-panel" aria-hidden="true">
+        <div class="lsp-handle-wrap" id="lsp-handle"><div class="lsp-handle"></div></div>
+        <div class="lsp-header">
+          <div class="lsp-title">Live Begleiter</div>
+          <div class="lsp-header-right">
+            <span class="panel-live-badge">LIVE</span>
+            <button class="lsp-close" id="lsp-close" aria-label="Schliessen">×</button>
+          </div>
+        </div>
+
+        <div class="lsp-body">
+          <!-- Reactions -->
+          <div class="lsp-section">
+            <div class="section-head">Schnell-Reaktionen</div>
+            <div class="lsp-reactions">
+              <button class="reaction-btn lsp-reaction" data-reaction="tor" data-count="0">
+                <span class="reaction-emoji">🔥</span>
+                <span class="reaction-label">Tor!</span>
+              </button>
+              <button class="reaction-btn lsp-reaction" data-reaction="pass" data-count="0">
+                <span class="reaction-emoji">❤️</span>
+                <span class="reaction-label">Pass!</span>
+              </button>
+              <button class="reaction-btn lsp-reaction" data-reaction="foul" data-count="0">
+                <span class="reaction-emoji">😱</span>
+                <span class="reaction-label">Foul!</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tipp -->
+          <div class="lsp-section">
+            <div class="section-head">Mein Tipp</div>
+            <div class="lsp-tipp-card" id="lsp-tipp-card">
+              <!-- Empty state -->
+              <div class="lsp-tipp-empty">
+                <div class="lsp-tipp-empty-icon">⚽️</div>
+                <div class="lsp-tipp-empty-copy">
+                  <div class="lsp-tipp-empty-head">Noch kein Tipp</div>
+                  <div class="lsp-tipp-empty-sub">Tippe den Endstand · bis zu +250 Pkt</div>
+                </div>
+                <button class="tipp-confirm-btn" id="lsp-go-tipp">Tipp abgeben →</button>
+              </div>
+              <!-- Placed state (read-only after lock-in) -->
+              <div class="lsp-tipp-placed">
+                <div class="lsp-tipp-placed-head">
+                  <span class="lsp-tipp-placed-label">Dein Tipp</span>
+                  <span class="lsp-tipp-placed-pts" id="lsp-tipp-pts">+150 Pkt möglich</span>
+                </div>
+                <div class="lsp-tipp-placed-score">
+                  <span class="lsp-tipp-team">SUI</span>
+                  <span class="lsp-tipp-num" id="lsp-tipp-home">2</span>
+                  <span class="lsp-tipp-sep">:</span>
+                  <span class="lsp-tipp-num" id="lsp-tipp-away">1</span>
+                  <span class="lsp-tipp-team">FRA</span>
+                </div>
+                <div class="lsp-tipp-locked-note">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                  <span>Tipp gesperrt</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Energie -->
+          <div class="lsp-section">
+            <div class="section-head">Kollektive Stimmung</div>
+            <div class="energie-block" role="button" tabindex="0" aria-label="Tippe für Fan-Eruption">
+              <div class="energie-row">
+                <span class="energie-label">Fan-Energie</span>
+                <span class="energie-val">74%</span>
+              </div>
+              <div class="energie-track">
+                <div class="energie-fill" style="width:74%"></div>
+              </div>
+              <div class="energie-hint">56.000 Fans schauen zu</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Floating reaction emojis (companion-only) -->
+      <div class="float-emoji-layer" id="lstream-float-layer" aria-hidden="true"></div>
+
+      <!-- Chat side panel (Twitch-style) -->
+      <aside class="lstream-chat-panel" id="lstream-chat-panel" aria-hidden="true">
+        <div class="chat-header">
+          <div class="chat-title">
+            <span class="chat-live-dot"></span>
+            <span>Live-Chat</span>
+            <span class="chat-count" id="chat-viewer-count">· 12.4k</span>
+          </div>
+          <button class="chat-close" id="chat-close" aria-label="Chat schliessen">×</button>
+        </div>
+        <div class="chat-messages" id="chat-messages-ls"></div>
+        <div class="chat-reactions" id="chat-reactions-ls">
+          <button class="chat-reaction-pill" data-emoji="🔥">🔥</button>
+          <button class="chat-reaction-pill" data-emoji="❤️">❤️</button>
+          <button class="chat-reaction-pill" data-emoji="😱">😱</button>
+          <button class="chat-reaction-pill" data-emoji="👏">👏</button>
+          <button class="chat-reaction-pill" data-emoji="🇨🇭">🇨🇭</button>
+          <button class="chat-reaction-pill" data-emoji="⚽️">⚽️</button>
+        </div>
+        <div class="chat-input-bar">
+          <input class="chat-input" id="chat-input-ls" type="text" placeholder="Schreib was…" maxlength="140" autocomplete="off">
+          <button class="chat-send" id="chat-send-ls" aria-label="Senden" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg>
+          </button>
+        </div>
+      </aside>
+
+      <!-- In-game eruption overlay (landscape Flow A) -->
+      <div class="lstream-eruption-overlay" id="lstream-eruption">
+        <canvas id="lstream-eruption-canvas"></canvas>
+        <div class="lstream-eruption-content">
+          <div class="eruption-logo"><span>srf</span> sport</div>
+          <div class="eruption-word">TOR!</div>
+          <div class="eruption-sub">56.000 Fans erleben<br>diesen Moment mit dir</div>
+          <div class="eruption-counter" id="lstream-eruption-counter">0</div>
+          <div class="eruption-counter-label">Fan-Reaktionen</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SCREEN 3: COMPANION PANEL
+  ═══════════════════════════════════════════ -->
+  <div id="s3" class="screen">
+    <!-- Dimmed video bg -->
+    <div style="flex:1;background:#0a0a0a linear-gradient(180deg,#0a0a0a,#050505);display:flex;flex-direction:column;position:relative;">
+      <div class="s3-back" id="s3-back" role="button" tabindex="0" aria-label="Zurück">‹</div>
+
+      <!-- Mini score indicator at top (phone-only mode, not in cast) -->
+      <div class="s3-mini-score">
+        <span style="font-size:16px;">🇨🇭</span>
+        <span style="font-size:18px;font-weight:900;color:white;letter-spacing:-1px;">1 : 1</span>
+        <span style="font-size:16px;">🇫🇷</span>
+        <span style="font-size:11px;font-weight:700;color:var(--red);margin-left:4px;">67'</span>
+      </div>
+
+      <!-- Cast active banner (cast mode only) -->
+      <div class="cast-active-banner">
+        <div class="cast-active-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="1"/><path d="M8 21h8M12 17v4"/></svg>
+          <span class="cast-active-pulse"></span>
+        </div>
+        <div class="cast-active-info">
+          <div class="cast-active-label">Auf TV · Apple TV Wohnzimmer</div>
+          <div class="cast-active-score">
+            <span>🇨🇭 SUI <strong>1 : 1</strong> FRA 🇫🇷</span>
+            <span class="cast-active-min">67'</span>
+          </div>
+        </div>
+        <button class="cast-stop-btn" id="cast-stop" aria-label="Streaming beenden">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+        </button>
+      </div>
+
+      <!-- The sheet -->
+      <div class="panel-sheet" id="panel-sheet">
+        <div class="panel-handle-wrap"><div class="panel-handle"></div></div>
+
+        <div class="panel-header">
+          <div class="panel-title">Live Begleiter</div>
+          <div class="panel-live-badge">LIVE</div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="sheet-tabs">
+          <button class="sheet-tab active" data-tab="companion">Companion</button>
+          <button class="sheet-tab" data-tab="chat">Chat <span class="sheet-tab-badge" id="cast-chat-badge">3</span></button>
+        </div>
+
+        <!-- Companion tab content -->
+        <div class="panel-body" data-tab-panel="companion">
+
+          <!-- Reactions -->
+          <div>
+            <div class="section-head">Schnell-Reaktionen</div>
+            <div class="reactions-wrap">
+              <button class="reaction-btn" data-reaction="tor" data-count="0">
+                <span class="reaction-emoji">🔥</span>
+                <span class="reaction-label">Tor!</span>
+                <span class="reaction-count" id="r-tor">1.2k</span>
+              </button>
+              <button class="reaction-btn" data-reaction="pass" data-count="0">
+                <span class="reaction-emoji">❤️</span>
+                <span class="reaction-label">Top Pass!</span>
+                <span class="reaction-count" id="r-pass">843</span>
+              </button>
+              <button class="reaction-btn" data-reaction="foul" data-count="0">
+                <span class="reaction-emoji">😱</span>
+                <span class="reaction-label">Foul!</span>
+                <span class="reaction-count" id="r-foul">567</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Compact tipp pill -->
+          <div>
+            <div class="section-head">Mein Tipp</div>
+            <button class="s3-tipp-pill" id="s3-tipp-pill" type="button">
+              <span class="s3-tipp-label">Mein Tipp</span>
+              <span class="s3-tipp-val s3-tipp-val-empty">Noch offen</span>
+              <span class="s3-tipp-cta">Tipp abgeben →</span>
+            </button>
+          </div>
+
+          <!-- Energie -->
+          <div>
+            <div class="section-head">Kollektive Stimmung</div>
+            <div class="energie-block" id="energie-block" role="button" tabindex="0" aria-label="Tippe für Fan-Eruption">
+              <div class="energie-row">
+                <span class="energie-label">Fan-Energie</span>
+                <span class="energie-val" id="energie-val">74%</span>
+              </div>
+              <div class="energie-track">
+                <div class="energie-fill" id="energie-fill" style="width:74%"></div>
+              </div>
+              <div class="energie-hint" id="energie-hint">56.000 Fans schauen gerade zu · Tippe 3× für sofortige Eruption</div>
+            </div>
+          </div>
+
+          <div style="height:8px;"></div>
+        </div>
+
+        <!-- Chat tab content -->
+        <div class="panel-sheet-chat" data-tab-panel="chat" style="display:none;">
+          <div class="chat-messages" id="chat-messages-cast"></div>
+          <div class="chat-reactions">
+            <button class="chat-reaction-pill" data-emoji="🔥">🔥</button>
+            <button class="chat-reaction-pill" data-emoji="❤️">❤️</button>
+            <button class="chat-reaction-pill" data-emoji="😱">😱</button>
+            <button class="chat-reaction-pill" data-emoji="👏">👏</button>
+            <button class="chat-reaction-pill" data-emoji="🇨🇭">🇨🇭</button>
+            <button class="chat-reaction-pill" data-emoji="⚽️">⚽️</button>
+          </div>
+          <div class="chat-input-bar">
+            <input class="chat-input" id="chat-input-cast" type="text" placeholder="Schreib was…" maxlength="140" autocomplete="off">
+            <button class="chat-send" id="chat-send-cast" aria-label="Senden" disabled>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SCREEN 4: FAN ERUPTION
+  ═══════════════════════════════════════════ -->
+  <div id="s4" class="screen">
+    <canvas id="eruption-canvas"></canvas>
+    <div class="eruption-content">
+      <div class="eruption-logo"><span>srf</span> sport</div>
+      <div class="eruption-word">TOR!</div>
+      <div class="eruption-sub">56.000 Fans erleben<br>diesen Moment mit dir</div>
+      <div class="eruption-counter" id="eruption-counter">0</div>
+      <div class="eruption-counter-label">Fan-Reaktionen</div>
+      <button class="zuruck-btn" id="go-s3-from-s4">← Zurück</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SCREEN EDIT: TIPP INPUT + FRIENDS RANKING
+  ═══════════════════════════════════════════ -->
+  <div id="s-edit" class="screen">
+    <div class="edit-header">
+      <button class="edit-back" id="edit-back" aria-label="Zurück">‹</button>
+      <div class="edit-title">Dein Tipp</div>
+    </div>
+    <div class="edit-subtitle">SUI — FRA · UEFA Nations League · 67'</div>
+
+    <div class="edit-tipp-card">
+      <div class="edit-teams">
+        <span>SUI 🇨🇭</span>
+        <span class="sep">vs</span>
+        <span>🇫🇷 FRA</span>
+      </div>
+      <div class="edit-score-row">
+        <div class="edit-stepper">
+          <button class="edit-stepper-btn" id="edit-home-minus">−</button>
+          <span class="edit-stepper-val" id="edit-home-val">2</span>
+          <button class="edit-stepper-btn" id="edit-home-plus">+</button>
+        </div>
+        <span class="edit-sep">:</span>
+        <div class="edit-stepper">
+          <button class="edit-stepper-btn" id="edit-away-minus">−</button>
+          <span class="edit-stepper-val" id="edit-away-val">1</span>
+          <button class="edit-stepper-btn" id="edit-away-plus">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="edit-points">
+      <span class="edit-points-label">Bei richtigem Tipp</span>
+      <span class="edit-points-val" id="edit-points-val">+150 Pkt</span>
+    </div>
+
+    <div class="friends-section">
+      <div class="friends-head">Freunde-Rangliste · Saison</div>
+      <div class="friends-list">
+        <div class="friend-row">
+          <div class="friend-rank">1</div>
+          <div class="friend-name">Lena <span class="friend-name-sub">· 12 Tipps</span></div>
+          <div class="friend-points">580<span>Pkt</span></div>
+        </div>
+        <div class="friend-row">
+          <div class="friend-rank">2</div>
+          <div class="friend-name">Tim <span class="friend-name-sub">· 11 Tipps</span></div>
+          <div class="friend-points">435<span>Pkt</span></div>
+        </div>
+        <div class="friend-row is-me">
+          <div class="friend-rank">3</div>
+          <div class="friend-name">Du <span class="friend-name-sub">· 10 Tipps</span></div>
+          <div class="friend-points">290<span>Pkt</span></div>
+        </div>
+        <div class="friend-row">
+          <div class="friend-rank">4</div>
+          <div class="friend-name">Mira <span class="friend-name-sub">· 10 Tipps</span></div>
+          <div class="friend-points">240<span>Pkt</span></div>
+        </div>
+        <div class="friend-row">
+          <div class="friend-rank">5</div>
+          <div class="friend-name">Jonas <span class="friend-name-sub">· 9 Tipps</span></div>
+          <div class="friend-points">180<span>Pkt</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1;"></div>
+
+    <div class="edit-footer">
+      <button class="edit-confirm-btn" id="edit-confirm">Tipp abgeben →</button>
+    </div>
+
+    <!-- Lock-in confirmation modal -->
+    <div class="lock-modal" id="lock-modal">
+      <div class="lock-card">
+        <div class="lock-title">Tipp abgeben?</div>
+        <div class="lock-sub">Du tippst <strong id="lock-score">2 : 1</strong> auf SUI — FRA.<br>Nach dem Abgeben kannst du deinen Tipp nicht mehr ändern.</div>
+        <div class="lock-actions">
+          <button class="lock-cancel" id="lock-cancel">Abbrechen</button>
+          <button class="lock-confirm" id="lock-confirm">Ja, abgeben</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SCREEN 5: TIPP CONFIRMED
+  ═══════════════════════════════════════════ -->
+  <div id="s5" class="screen">
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+      <div class="tipp-confirmed-wrap">
+        <div class="check-circle">✓</div>
+        <div class="confirmed-label">Tipp gespeichert</div>
+        <div class="tipp-result" id="tipp-result-display">2 : 1</div>
+        <div class="tipp-desc">SUI — FRA · UEFA Nations League</div>
+
+        <div class="points-badge">
+          <div class="points-val" id="points-display">+150 Punkte</div>
+          <div class="points-label">für deine Vorhersage</div>
+        </div>
+
+        <div class="leaderboard-teaser">
+          <div class="rank-badge">3</div>
+          <div class="rank-text">
+            <strong>Du bist auf Rang 3</strong>
+            unter deinen Freunden
+          </div>
+        </div>
+
+        <button class="back-companion-btn" id="go-s3-from-s5">↩ Zurück zum Spiel</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+
+<script>
+(function() {
+  // ── State ──
+  let currentScreen = 's1';
+  let energieTaps = 0;
+  let energieTimer = null;
+  let eruptionAutoTimer = null;
+  let homeGoals = 2, awayGoals = 1;
+
+  // ── Navigation ──
+  const phoneEl = document.querySelector('.phone');
+  const lstreamEl = document.querySelector('.lstream');
+  const rotateHintEl = document.getElementById('rotate-hint');
+  const tapHintEl = document.getElementById('tap-hint');
+  let companionMode = null; // 'landscape' (phone-only) | 'cast' (TV cast, portrait s3) | null
+
+  // ── Real device orientation (mobile fork) ──
+  // The desktop file fakes landscape via a CSS class. On real phones we drive
+  // the .landscape class from actual orientation, and show a hint overlay when
+  // a screen needs landscape but the phone is still in portrait.
+  const landscapeMQ = window.matchMedia('(orientation: landscape)');
+
+  function isLandscapeRequiredFor(id) {
+    if (id === 's2') return true;
+    if (id === 's4' && companionMode === 'landscape') return true;
+    return false;
+  }
+
+  function updateRotationHint() {
+    const wants = isLandscapeRequiredFor(currentScreen);
+    rotateHintEl.classList.toggle('show', wants && !landscapeMQ.matches);
+  }
+
+  function syncOrientationClass() {
+    phoneEl.classList.toggle('landscape', landscapeMQ.matches);
+    updateRotationHint();
+    resizeEruptionCanvasIfActive();
+  }
+
+  if (landscapeMQ.addEventListener) {
+    landscapeMQ.addEventListener('change', syncOrientationClass);
+  } else if (landscapeMQ.addListener) {
+    landscapeMQ.addListener(syncOrientationClass); // Safari < 14 fallback
+  }
+  window.addEventListener('resize', syncOrientationClass);
+  window.addEventListener('orientationchange', syncOrientationClass);
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+
+    currentScreen = id;
+
+    // Hide the s1 tap hint after the first navigation away from s1
+    if (id !== 's1' && tapHintEl) tapHintEl.classList.add('hidden');
+
+    // Real orientation drives the .landscape class; keep it in sync and show the rotation hint if needed
+    syncOrientationClass();
+  }
+
+  function closeLandscapePanel() {
+    lstreamEl.classList.remove('companion-open');
+    document.getElementById('panel-sheet').classList.remove('open');
+  }
+
+  function openLandscapePanel() {
+    lstreamEl.classList.add('companion-open');
+  }
+
+  // Screen 1 → 2 (always phone-only by default; user can cast from s2)
+  document.getElementById('go-s2').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } });
+  document.getElementById('go-s2').addEventListener('click', () => {
+    companionMode = null;
+    document.getElementById('ls-cast').classList.remove('active');
+    closeLandscapePanel();
+    lstreamEl.classList.remove('chat-open');
+    const cb1 = document.getElementById('open-chat');
+    if (cb1) cb1.classList.remove('is-active');
+    energieTaps = 0;
+    currentEnergie = 74;
+    reactionCounts.tor = 1200;
+    reactionCounts.pass = 843;
+    reactionCounts.foul = 567;
+    updateEnergieDisplay(74);
+    // reset displayed reaction counts
+    document.getElementById('r-tor').textContent = '1.2k';
+    document.getElementById('r-pass').textContent = '843';
+    document.getElementById('r-foul').textContent = '567';
+    // purge any orphaned ripple-badges
+    document.querySelectorAll('.ripple-badge').forEach(el => el.remove());
+    clearTimeout(energieTimer);
+    clearTimeout(eruptionAutoTimer);
+    showScreen('s2');
+  });
+
+  // Screen 2 → Companion: landscape bottom-sheet (Flow A)
+  // Toggleable; mutually exclusive with chat
+  document.getElementById('go-s3').addEventListener('click', () => {
+    if (lstreamEl.classList.contains('companion-open')) {
+      closeLandscapePanel();
+      clearTimeout(eruptionAutoTimer);
+      clearTimeout(energieTimer);
+      energieTaps = 0;
+      companionMode = null;
+      return;
+    }
+    // Close chat if it was open
+    lstreamEl.classList.remove('chat-open');
+    const cb = document.getElementById('open-chat');
+    if (cb) cb.classList.remove('is-active');
+    companionMode = 'landscape';
+    openLandscapePanel();
+    startEnergieSimulation();
+    scheduleEruptionAuto();
+  });
+
+  // Landscape side-panel close
+  document.getElementById('lsp-close').addEventListener('click', () => {
+    closeLandscapePanel();
+    clearTimeout(eruptionAutoTimer);
+    clearTimeout(energieTimer);
+    energieTaps = 0;
+    companionMode = null;
+  });
+
+  // Landscape side-panel → Tipp (rotates to portrait s-edit)
+  document.getElementById('lsp-go-tipp').addEventListener('click', () => {
+    clearTimeout(eruptionAutoTimer);
+    closeLandscapePanel();
+    setTimeout(() => showScreen('s-edit'), 200);
+  });
+
+  // Cast icon → cast confirm flow (Flow B)
+  document.getElementById('ls-cast').addEventListener('click', () => {
+    if (companionMode === 'cast') return;
+    document.getElementById('cast-sheet').classList.add('open');
+  });
+  document.getElementById('cast-cancel').addEventListener('click', () => {
+    document.getElementById('cast-sheet').classList.remove('open');
+  });
+  document.getElementById('cast-confirm').addEventListener('click', () => {
+    clearTimeout(energieTimer);
+    clearTimeout(eruptionAutoTimer);
+    energieTaps = 0;
+    document.getElementById('cast-sheet').classList.remove('open');
+    document.getElementById('ls-cast').classList.add('active');
+    companionMode = 'cast';
+    closeLandscapePanel();
+    // Rotate back to portrait and show s3 in cast mode
+    document.getElementById('s3').classList.add('casting');
+    showScreen('s3');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.getElementById('panel-sheet').classList.add('open');
+    }));
+    startEnergieSimulation();
+    scheduleEruptionAuto();
+  });
+
+  // Back: S2 → S1
+  document.getElementById('s2-back').addEventListener('click', () => {
+    closeLandscapePanel();
+    showScreen('s1');
+  });
+
+  // Stop casting: tear down cast state and return to phone-only landscape s2
+  function stopCasting() {
+    document.getElementById('panel-sheet').classList.remove('open');
+    document.getElementById('s3').classList.remove('casting');
+    document.getElementById('ls-cast').classList.remove('active');
+    clearTimeout(eruptionAutoTimer);
+    clearTimeout(energieTimer);
+    energieTaps = 0;
+    companionMode = null;
+    setTimeout(() => showScreen('s2'), 200);
+  }
+
+  // Back: S3 → S2 (used in cast mode; ends the cast and resumes phone watching)
+  document.getElementById('s3-back').addEventListener('click', stopCasting);
+
+  // Cast banner "Stop" button
+  document.getElementById('cast-stop').addEventListener('click', stopCasting);
+
+  // Screen 3 → edit (tipp from portrait companion, compact pill)
+  const s3TippPill = document.getElementById('s3-tipp-pill');
+  if (s3TippPill) {
+    s3TippPill.addEventListener('click', () => {
+      clearTimeout(eruptionAutoTimer);
+      showScreen('s-edit');
+    });
+  }
+
+  // s-edit back → return to whichever companion mode was active
+  document.getElementById('edit-back').addEventListener('click', () => {
+    if (companionMode === 'landscape') {
+      showScreen('s2');
+      openLandscapePanel();
+    } else if (companionMode === 'cast') {
+      showScreen('s3');
+    } else {
+      showScreen('s2');
+    }
+    scheduleEruptionAuto();
+  });
+
+  // s-edit confirm → open lock-in modal
+  document.getElementById('edit-confirm').addEventListener('click', () => {
+    document.getElementById('lock-score').textContent = homeGoals + ' : ' + awayGoals;
+    document.getElementById('lock-modal').classList.add('open');
+  });
+  document.getElementById('lock-cancel').addEventListener('click', () => {
+    document.getElementById('lock-modal').classList.remove('open');
+  });
+  document.getElementById('lock-confirm').addEventListener('click', () => {
+    document.getElementById('lock-modal').classList.remove('open');
+    document.getElementById('tipp-result-display').textContent = homeGoals + ' : ' + awayGoals;
+    const pts = 100 + (homeGoals + awayGoals) * 25;
+    document.getElementById('points-display').textContent = '+' + pts + ' Punkte';
+    setTimeout(() => showScreen('s5'), 180);
+  });
+
+  // Screen 4 → companion (eruption returns to active companion mode)
+  document.getElementById('go-s3-from-s4').addEventListener('click', () => {
+    stopEruption();
+    if (companionMode === 'landscape') {
+      showScreen('s2');
+      openLandscapePanel();
+    } else {
+      showScreen('s3');
+    }
+    resetEnergieBlock();
+    scheduleEruptionAuto();
+  });
+
+  // Screen 5 (tipp gespeichert) → back to live game
+  document.getElementById('go-s3-from-s5').addEventListener('click', () => {
+    if (companionMode === 'cast') {
+      showScreen('s3');
+    } else {
+      // default: return to landscape live view with companion open
+      companionMode = 'landscape';
+      showScreen('s2');
+      openLandscapePanel();
+    }
+    scheduleEruptionAuto();
+  });
+
+  // ── Tipp steppers (shared between s3 inline and s-edit) ──
+  const stepperEls = {
+    homeVal: ['home-val', 'edit-home-val'],
+    awayVal: ['away-val', 'edit-away-val'],
+    homeMinus: ['home-minus', 'edit-home-minus'],
+    homePlus: ['home-plus', 'edit-home-plus'],
+    awayMinus: ['away-minus', 'edit-away-minus'],
+    awayPlus: ['away-plus', 'edit-away-plus'],
+  };
+  function setAll(ids, fn) { ids.forEach(id => { const el = document.getElementById(id); if (el) fn(el); }); }
+  function updateTipp() {
+    setAll(stepperEls.homeVal, el => el.textContent = homeGoals);
+    setAll(stepperEls.awayVal, el => el.textContent = awayGoals);
+    setAll(stepperEls.homeMinus, el => el.disabled = (homeGoals === 0));
+    setAll(stepperEls.homePlus, el => el.disabled = (homeGoals === 9));
+    setAll(stepperEls.awayMinus, el => el.disabled = (awayGoals === 0));
+    setAll(stepperEls.awayPlus, el => el.disabled = (awayGoals === 9));
+    // Points preview: base 100 + 25 per goal predicted
+    const pts = 100 + (homeGoals + awayGoals) * 25;
+    const editPts = document.getElementById('edit-points-val');
+    if (editPts) editPts.textContent = '+' + pts + ' Pkt';
+  }
+  stepperEls.homePlus.forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('click', () => { homeGoals = Math.min(9, homeGoals + 1); updateTipp(); }); });
+  stepperEls.homeMinus.forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('click', () => { homeGoals = Math.max(0, homeGoals - 1); updateTipp(); }); });
+  stepperEls.awayPlus.forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('click', () => { awayGoals = Math.min(9, awayGoals + 1); updateTipp(); }); });
+  stepperEls.awayMinus.forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('click', () => { awayGoals = Math.max(0, awayGoals - 1); updateTipp(); }); });
+  updateTipp();
+
+  // ── Reactions ──
+  const reactionCounts = { tor: 1200, pass: 843, foul: 567 };
+  const reactionEls = { tor: 'r-tor', pass: 'r-pass', foul: 'r-foul' };
+
+  document.querySelectorAll('.reaction-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.reaction;
+      reactionCounts[key]++;
+      const el = document.getElementById(reactionEls[key]);
+      const val = reactionCounts[key];
+      el.textContent = val >= 1000 ? (val / 1000).toFixed(1) + 'k' : val;
+
+      // Remove existing ripple
+      const existing = btn.querySelector('.ripple-badge');
+      if (existing) existing.remove();
+
+      const ripple = document.createElement('span');
+      ripple.className = 'ripple-badge';
+      ripple.textContent = '+1';
+      btn.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 620);
+    });
+  });
+
+  // ── Energie simulation ──
+  let currentEnergie = 74;
+
+  function startEnergieSimulation() {
+    clearTimeout(energieTimer);
+    function tick() {
+      currentEnergie = Math.min(99, currentEnergie + (Math.random() * 3 - 0.5));
+      updateEnergieDisplay(currentEnergie);
+      energieTimer = setTimeout(tick, 800 + Math.random() * 400);
+    }
+    tick();
+  }
+
+  function updateEnergieDisplay(val) {
+    val = Math.round(val);
+    document.querySelectorAll('.energie-val').forEach(el => el.textContent = val + '%');
+    document.querySelectorAll('.energie-fill').forEach(el => el.style.width = val + '%');
+  }
+
+  function setEnergieHint(text) {
+    document.querySelectorAll('.energie-hint').forEach(el => el.textContent = text);
+  }
+
+  function resetEnergieBlock() {
+    energieTaps = 0;
+    currentEnergie = 40;
+    updateEnergieDisplay(currentEnergie);
+    setEnergieHint('56.000 Fans schauen gerade zu · Tippe 3× für sofortige Eruption');
+    startEnergieSimulation();
+    scheduleEruptionAuto();
+  }
+
+  // Energie block tap → trigger eruption (binds to all instances)
+  document.querySelectorAll('.energie-block').forEach(block => {
+    block.addEventListener('click', () => {
+      energieTaps++;
+      const remaining = 3 - energieTaps;
+      if (energieTaps >= 3) {
+        clearTimeout(eruptionAutoTimer);
+        triggerEruption();
+      } else {
+        setEnergieHint(`56.000 Fans schauen gerade zu · Noch ${remaining}× für Eruption`);
+        currentEnergie = Math.min(99, currentEnergie + 8);
+        updateEnergieDisplay(currentEnergie);
+      }
+    });
+  });
+
+  // Auto-trigger after 12s if a companion mode is active
+  function scheduleEruptionAuto() {
+    clearTimeout(eruptionAutoTimer);
+    eruptionAutoTimer = setTimeout(() => {
+      const companionActive = currentScreen === 's3' || lstreamEl.classList.contains('companion-open');
+      if (companionActive) triggerEruption();
+    }, 12000);
+  }
+
+  // ── Eruption ──
+  let particleAnim = null;
+  let particles = [];
+  let eruptionMode = null; // 'overlay' (landscape, in-game) | 'screen' (cast, full screen)
+  const lstreamEruption = document.getElementById('lstream-eruption');
+
+  function triggerEruption() {
+    clearTimeout(eruptionAutoTimer);
+    clearTimeout(energieTimer);
+
+    if (companionMode === 'landscape') {
+      // In-game overlay: close side panel, show TOR! over the video
+      eruptionMode = 'overlay';
+      closeLandscapePanel();
+      lstreamEruption.classList.add('active');
+      startParticles('lstream-eruption-canvas', true);
+      animateCounter('lstream-eruption-counter');
+    } else {
+      // Cast or fallback: full-screen eruption
+      eruptionMode = 'screen';
+      showScreen('s4');
+      startParticles('eruption-canvas', false);
+      animateCounter('eruption-counter');
+    }
+
+    // Auto return after 5s
+    setTimeout(() => {
+      if (eruptionMode === 'overlay') {
+        stopEruption();
+        lstreamEruption.classList.remove('active');
+        // Reopen the side panel so the user can continue engaging
+        if (companionMode === 'landscape') openLandscapePanel();
+        resetEnergieBlock();
+      } else if (eruptionMode === 'screen' && currentScreen === 's4') {
+        stopEruption();
+        if (companionMode === 'cast') {
+          showScreen('s3');
+        } else {
+          showScreen('s2');
+          companionMode = null;
+        }
+        resetEnergieBlock();
+      }
+    }, 5000);
+  }
+
+  function stopEruption() {
+    clearTimeout(eruptionAutoTimer);
+    if (particleAnim) cancelAnimationFrame(particleAnim);
+    particleAnim = null;
+    particles = [];
+    ['eruption-canvas', 'lstream-eruption-canvas'].forEach(id => {
+      const c = document.getElementById(id);
+      if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+    });
+    eruptionMode = null;
+  }
+
+  // DPR-aware canvas sizing for real mobile viewports.
+  // Phone wrapper drives the size (it's 100dvw x 100dvh), DPR is capped at 2 for perf.
+  // All drawing happens in CSS pixels via ctx.scale(dpr, dpr).
+  function sizeEruptionCanvas(canvas) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = phoneEl.getBoundingClientRect();
+    canvas.width  = Math.max(1, Math.round(rect.width  * dpr));
+    canvas.height = Math.max(1, Math.round(rect.height * dpr));
+    canvas.style.width  = rect.width  + 'px';
+    canvas.style.height = rect.height + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+    return { ctx, w: rect.width, h: rect.height };
+  }
+
+  // Called from syncOrientationClass — if the eruption is running, resize so it stays centered.
+  // Mid-burst rotation is rare but real (Shain rotating phone as the goal fires). Restarts particles
+  // at the new size; the 5s burst budget swallows the visual hiccup.
+  function resizeEruptionCanvasIfActive() {
+    if (!eruptionMode) return;
+    const canvasId = eruptionMode === 'overlay' ? 'lstream-eruption-canvas' : 'eruption-canvas';
+    if (particleAnim) cancelAnimationFrame(particleAnim);
+    particleAnim = null;
+    particles = [];
+    startParticles(canvasId, landscapeMQ.matches);
+  }
+
+  function startParticles(canvasId, _landscapeOverride) {
+    const canvas = document.getElementById(canvasId);
+    const { ctx, w: canvasW, h: canvasH } = sizeEruptionCanvas(canvas);
+    const cx = canvasW / 2;
+    const cy = canvasH / 2;
+    particles = [];
+
+    for (let i = 0; i < 120; i++) {
+      const angle = (Math.random() * Math.PI * 2);
+      const speed = 2 + Math.random() * 8;
+      const size = 3 + Math.random() * 8;
+      const colors = ['#e31f2b', '#FF4D6B', '#FF8C9E', '#FFD700', '#FF6B00', '#FFFFFF'];
+      particles.push({
+        x: cx + (Math.random() - 0.5) * 60,
+        y: cy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 4,
+        size,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: 1,
+        rot: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 0.2,
+        shape: Math.random() > 0.5 ? 'rect' : 'circle',
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvasW, canvasH);
+
+      const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, 280);
+      grd.addColorStop(0, 'rgba(227,31,43,0.18)');
+      grd.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, canvasW, canvasH);
+
+      particles.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        if (p.shape === 'rect') {
+          ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.18;
+        p.vx *= 0.99;
+        p.rot += p.rotSpeed;
+        p.alpha -= 0.008;
+      });
+
+      particles = particles.filter(p => p.alpha > 0);
+
+      if (Math.random() > 0.5) {
+        const angle = (Math.random() * Math.PI * 2);
+        const speed = 1 + Math.random() * 6;
+        const colors = ['#e31f2b', '#FF4D6B', '#FFD700', '#FF6B00', '#FFFFFF', '#FF8C9E'];
+        particles.push({
+          x: cx + (Math.random() - 0.5) * 80,
+          y: cy + (Math.random() - 0.5) * 20,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 5,
+          size: 3 + Math.random() * 7,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          alpha: 1,
+          rot: Math.random() * Math.PI * 2,
+          rotSpeed: (Math.random() - 0.5) * 0.15,
+          shape: Math.random() > 0.5 ? 'rect' : 'circle',
+        });
+      }
+
+      if (eruptionMode) {
+        particleAnim = requestAnimationFrame(draw);
+      }
+    }
+
+    draw();
+  }
+
+  // Counter animation
+  function animateCounter(elId) {
+    const el = document.getElementById(elId);
+    const target = 56000;
+    const duration = 2000;
+    const start = performance.now();
+
+    function tick(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const val = Math.floor(eased * target);
+      el.textContent = val.toLocaleString('de-CH');
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // ─────────────────────────────────────────────
+  // Bottom-sheet handle (tap to close) + match-card-link clicks
+  // ─────────────────────────────────────────────
+  const lspHandle = document.getElementById('lsp-handle');
+  if (lspHandle) {
+    lspHandle.addEventListener('click', () => {
+      closeLandscapePanel();
+      clearTimeout(eruptionAutoTimer);
+      clearTimeout(energieTimer);
+      energieTaps = 0;
+      companionMode = null;
+    });
+  }
+
+  // Make all "data-go" cards clickable
+  document.querySelectorAll('[data-go]').forEach(el => {
+    const target = el.dataset.go;
+    el.addEventListener('click', () => {
+      const goEl = document.getElementById('go-s2');
+      if (target === 's2' && goEl) {
+        goEl.click();
+      } else {
+        showScreen(target);
+      }
+    });
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+    });
+  });
+
+  // Bottom-nav items with data-nav navigate between screens
+  document.querySelectorAll('[data-nav]').forEach(el => {
+    el.addEventListener('click', () => {
+      const target = el.dataset.nav;
+      if (target === 's2') {
+        const goEl = document.getElementById('go-s2');
+        if (goEl) goEl.click();
+      } else {
+        showScreen(target);
+      }
+    });
+  });
+
+  // Leaderboard scope tabs (Freunde / Schweiz / Welt) — visual toggle only
+  document.querySelectorAll('.lb-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      tab.parentElement.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+    });
+  });
+
+  // ─────────────────────────────────────────────
+  // TIPP-PLACED STATE — updates the bottom-sheet card
+  // and disables the "Tipp abgeben" CTA on the landscape sheet
+  // ─────────────────────────────────────────────
+  let tippPlaced = false;
+  let placedScore = null;
+  let placedPoints = null;
+
+  function setTippPlaced(home, away) {
+    tippPlaced = true;
+    placedScore = home + ' : ' + away;
+    placedPoints = 100 + (home + away) * 25;
+    refreshTippDisplays();
+  }
+
+  function refreshTippDisplays() {
+    // Landscape bottom sheet — toggle placed/empty layout
+    const card = document.getElementById('lsp-tipp-card');
+    if (card) {
+      card.classList.toggle('is-placed', tippPlaced);
+      if (tippPlaced) {
+        const [h, a] = placedScore.split(' : ');
+        const hEl = document.getElementById('lsp-tipp-home');
+        const aEl = document.getElementById('lsp-tipp-away');
+        const ptsEl = document.getElementById('lsp-tipp-pts');
+        if (hEl) hEl.textContent = h;
+        if (aEl) aEl.textContent = a;
+        if (ptsEl) ptsEl.textContent = '+' + placedPoints + ' Pkt möglich';
+      }
+    }
+    // Cast portrait pill — read-only once placed (no edit affordance)
+    const castTipp = document.getElementById('s3-tipp-pill');
+    if (castTipp) {
+      if (tippPlaced) {
+        castTipp.innerHTML = '<span class="s3-tipp-label">Dein Tipp</span><span class="s3-tipp-val">' + placedScore + '</span><span class="s3-tipp-locked"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Gesperrt</span>';
+        castTipp.classList.add('is-locked');
+        castTipp.setAttribute('disabled', '');
+      } else {
+        castTipp.innerHTML = '<span class="s3-tipp-label">Mein Tipp</span><span class="s3-tipp-val s3-tipp-val-empty">Noch offen</span><span class="s3-tipp-cta">Tipp abgeben →</span>';
+        castTipp.classList.remove('is-locked');
+        castTipp.removeAttribute('disabled');
+      }
+    }
+  }
+
+  // Hook lock-confirm to mark tipp as placed
+  const origLockConfirm = document.getElementById('lock-confirm');
+  if (origLockConfirm) {
+    origLockConfirm.addEventListener('click', () => {
+      setTippPlaced(homeGoals, awayGoals);
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // CHAT — cycling messages, input + send, emoji reactions
+  // ─────────────────────────────────────────────
+  const chatNames = [
+    'Lukas_82', 'PattySchwiizer', 'Hansli77', 'FootyFan99', 'rouge_bleu',
+    'schwirzz', 'fcb_fan', 'yb_4ever', 'PrinceBL', 'KaiserBT',
+    'cliché_du', 'bratwurst99', 'jura_marie', 'Lulu', 'rivaling',
+    'kaeptn_basel', 'tessin_max'
+  ];
+  const chatLines = [
+    'GOOOL!! 🔥🔥🔥',
+    'Was für ein Pass! 😱',
+    'Schiri pennt 🤡',
+    'Komm Schwiiz!! 🇨🇭',
+    'Allez les bleus 🇫🇷',
+    'Embolo darf nicht raus',
+    'Sommer ist ein Fels 🧱',
+    'spannend bis zum schluss',
+    'Foul!! ⚠️',
+    'das war abseits oder?',
+    'bisschen mehr Druck plz',
+    'Mbappé brennt heute',
+    'gell der Akanji 💪',
+    'hopp Schwiiz!',
+    'der Schär will da nicht hin',
+    'wer tippt auch 2:1?',
+    'haha was war das',
+    'noch 23 min ❤️‍🔥',
+    'sone schöne Flanke',
+    'jetzt aber!',
+    'Yamal ist Klasse',
+    'das wird noch knapp',
+    'eckball für die Schweiz',
+    'Tor!! 1:1 in Minute 67',
+    '🇨🇭🇨🇭🇨🇭',
+    'allez allez allez',
+    'lol der Pfostenschuss',
+    'wenn Schweiz gewinnt zahl ich Bier',
+    'Mbappé Tor incoming',
+    'ndomb ist müde',
+    'sone Energie heute krass',
+  ];
+
+  const chatMessagesLs = document.getElementById('chat-messages-ls');
+  const chatBadge = document.getElementById('chat-unread-badge');
+  let chatUnread = 3;
+  let chatCycleTimer = null;
+  let chatViewerCount = 12420;
+  const chatViewerEl = document.getElementById('chat-viewer-count');
+
+  function chatAppendMessage(target, name, text, isMe) {
+    if (!target) return;
+    const div = document.createElement('div');
+    div.className = 'chat-msg' + (isMe ? ' chat-msg-me' : '');
+    const colorIdx = name ? (name.charCodeAt(0) + name.length) % 7 : 0;
+    const palette = ['#FF8C9E','#FFD580','#9EE6C0','#9ECBFF','#D5A3FF','#FFB28B','#FFE17C'];
+    div.innerHTML = '<span class="chat-user" style="color:' + (isMe ? 'var(--red)' : palette[colorIdx]) + '">' + escapeHTML(name) + '</span>' + escapeHTML(text);
+    target.appendChild(div);
+    // Auto-scroll
+    target.scrollTop = target.scrollHeight;
+    // Trim oldest if too many
+    while (target.children.length > 80) target.firstElementChild.remove();
+  }
+
+  function escapeHTML(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function chatBroadcast(name, text) {
+    // Push to all open chat targets (landscape + cast)
+    [document.getElementById('chat-messages-ls'), document.getElementById('chat-messages-cast')].forEach(t => chatAppendMessage(t, name, text, false));
+  }
+
+  function chatCycle() {
+    if (chatCycleTimer) return;
+    function tick() {
+      const name = chatNames[Math.floor(Math.random() * chatNames.length)];
+      const text = chatLines[Math.floor(Math.random() * chatLines.length)];
+      chatBroadcast(name, text);
+      // Bump viewer count subtly
+      chatViewerCount += Math.floor(Math.random() * 6) - 1;
+      if (chatViewerEl) chatViewerEl.textContent = '· ' + (chatViewerCount / 1000).toFixed(1) + 'k';
+      // Update unread badge if chat not open
+      if (!lstreamEl.classList.contains('chat-open') && chatBadge) {
+        chatUnread++;
+        chatBadge.textContent = chatUnread > 99 ? '99+' : chatUnread;
+        chatBadge.style.display = '';
+      }
+      chatCycleTimer = setTimeout(tick, 1400 + Math.random() * 1600);
+    }
+    // Seed initial messages
+    for (let i = 0; i < 5; i++) {
+      const name = chatNames[Math.floor(Math.random() * chatNames.length)];
+      const text = chatLines[Math.floor(Math.random() * chatLines.length)];
+      [document.getElementById('chat-messages-ls'), document.getElementById('chat-messages-cast')].forEach(t => chatAppendMessage(t, name, text, false));
+    }
+    tick();
+  }
+
+  function chatStop() {
+    clearTimeout(chatCycleTimer);
+    chatCycleTimer = null;
+  }
+
+  // Wire up landscape chat icon
+  const chatOpenBtn = document.getElementById('open-chat');
+  if (chatOpenBtn) {
+    chatOpenBtn.addEventListener('click', () => {
+      const open = lstreamEl.classList.toggle('chat-open');
+      chatOpenBtn.classList.toggle('is-active', open);
+      if (open) {
+        // Mutually exclusive with the companion sheet
+        closeLandscapePanel();
+        chatUnread = 0;
+        if (chatBadge) chatBadge.style.display = 'none';
+        setTimeout(() => {
+          const ls = document.getElementById('chat-messages-ls');
+          if (ls) ls.scrollTop = ls.scrollHeight;
+        }, 50);
+      }
+    });
+  }
+  const chatCloseBtn = document.getElementById('chat-close');
+  if (chatCloseBtn) {
+    chatCloseBtn.addEventListener('click', () => {
+      lstreamEl.classList.remove('chat-open');
+      if (chatOpenBtn) chatOpenBtn.classList.remove('is-active');
+    });
+  }
+
+  // Send-button + input behavior for both landscape + cast chat inputs
+  function wireChatInput(inputId, sendId, targetId) {
+    const input = document.getElementById(inputId);
+    const send = document.getElementById(sendId);
+    if (!input || !send) return;
+    input.addEventListener('input', () => { send.disabled = input.value.trim().length === 0; });
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); send.click(); } });
+    send.addEventListener('click', () => {
+      const txt = input.value.trim();
+      if (!txt) return;
+      // Send to BOTH chat surfaces so they stay in sync
+      [document.getElementById('chat-messages-ls'), document.getElementById('chat-messages-cast')].forEach(t => chatAppendMessage(t, 'Du', txt, true));
+      input.value = '';
+      send.disabled = true;
+      // Simulated reply from a random viewer ~1s later
+      setTimeout(() => {
+        const replies = ['true', 'so isch es', 'haha', '🔥🔥🔥', 'jaaaa', '+1', 'genau', '🙌'];
+        const reply = replies[Math.floor(Math.random() * replies.length)];
+        const replier = chatNames[Math.floor(Math.random() * chatNames.length)];
+        chatBroadcast(replier, reply);
+      }, 900 + Math.random() * 700);
+    });
+  }
+  wireChatInput('chat-input-ls', 'chat-send-ls', 'chat-messages-ls');
+  wireChatInput('chat-input-cast', 'chat-send-cast', 'chat-messages-cast');
+
+  // Emoji reaction pills
+  document.querySelectorAll('.chat-reaction-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const emoji = pill.dataset.emoji;
+      [document.getElementById('chat-messages-ls'), document.getElementById('chat-messages-cast')].forEach(t => chatAppendMessage(t, 'Du', emoji, true));
+    });
+  });
+
+  // ─────────────────────────────────────────────
+  // CAST SHEET TABS (Companion / Chat)
+  // ─────────────────────────────────────────────
+  document.querySelectorAll('.sheet-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const sheet = tab.closest('.panel-sheet');
+      if (!sheet) return;
+      sheet.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const target = tab.dataset.tab;
+      sheet.querySelectorAll('[data-tab-panel]').forEach(p => {
+        p.style.display = (p.dataset.tabPanel === target) ? '' : 'none';
+      });
+      // Clear unread on chat tab open
+      if (target === 'chat') {
+        const badge = document.getElementById('cast-chat-badge');
+        if (badge) badge.style.display = 'none';
+        const t = document.getElementById('chat-messages-cast');
+        if (t) setTimeout(() => { t.scrollTop = t.scrollHeight; }, 30);
+      }
+    });
+  });
+
+  // ─────────────────────────────────────────────
+  // FLOATING REACTION EMOJIS (bottom-left of video, companion-open only)
+  // ─────────────────────────────────────────────
+  const floatLayer = document.getElementById('lstream-float-layer');
+  const reactionEmojiMap = { tor: '🔥', pass: '❤️', foul: '😱' };
+  const ambientPool = ['🔥', '❤️', '😱', '👏', '🇨🇭', '⚽️', '🎉', '🔥', '🇫🇷', '💪'];
+
+  function spawnFloatEmoji(emoji, isMe) {
+    if (!floatLayer) return;
+    if (!lstreamEl.classList.contains('companion-open')) return;
+    const span = document.createElement('span');
+    span.className = 'float-emoji' + (isMe ? ' float-emoji-me' : '');
+    span.textContent = emoji;
+    const w = floatLayer.offsetWidth || 220;
+    const left = 14 + Math.random() * (w - 50);
+    const drift = (Math.random() - 0.5) * 60;
+    span.style.left = left + 'px';
+    span.style.setProperty('--drift', drift + 'px');
+    span.style.animationDuration = (2.6 + Math.random() * 1.2) + 's';
+    floatLayer.appendChild(span);
+    setTimeout(() => span.remove(), 4000);
+  }
+
+  // Hook into ALL reaction-btn clicks (landscape + cast)
+  document.querySelectorAll('.reaction-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const emoji = reactionEmojiMap[btn.dataset.reaction];
+      if (emoji) spawnFloatEmoji(emoji, true);
+    });
+  });
+
+  // Chat emoji pills also pop a float
+  document.querySelectorAll('.chat-reaction-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      spawnFloatEmoji(pill.dataset.emoji, true);
+    });
+  });
+
+  // Ambient simulated reactions from other fans — subtle pace
+  let ambientFloatTimer = null;
+  function tickAmbientFloat() {
+    if (lstreamEl.classList.contains('companion-open')) {
+      // 1-2 emojis per burst, randomized
+      const burst = Math.random() < 0.4 ? 2 : 1;
+      for (let i = 0; i < burst; i++) {
+        setTimeout(() => {
+          spawnFloatEmoji(ambientPool[Math.floor(Math.random() * ambientPool.length)], false);
+        }, i * 160);
+      }
+    }
+    ambientFloatTimer = setTimeout(tickAmbientFloat, 700 + Math.random() * 1400);
+  }
+  tickAmbientFloat();
+
+  // Start chat cycling now that handlers exist
+  chatCycle();
+  refreshTippDisplays();
+
+})();
+</script>
+</body>
+</html>
